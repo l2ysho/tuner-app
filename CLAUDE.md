@@ -1,0 +1,160 @@
+# Guitar Tuner — project handoff
+
+> Working name: **tuner** (final app name not chosen yet — keep the name in one place so a rename is cheap).
+> Owner: Richard (senior full-stack dev, new to native iOS — explain Swift/Xcode specifics briefly when they matter).
+> Design canvas (source of truth for UI): https://claude.ai/artifact/Vp4Bv4bNyARAeXGfT2cEz4 → page **"Final — main screen"**.
+
+## 1. What we are building
+
+A clean, ad-free guitar tuner for iPhone and iPad (iOS 26+, Liquid Glass), later iPhone Duo (foldable), Mac, an AUv3 plugin and Android.
+
+- **Free**, no ads, no account, no tracking. Audio is analysed on device and never recorded or sent.
+- Portfolio piece: code quality, tests and CI matter as much as features.
+- Competitors with the same "honest tuner" pitch exist (OpenTuner, iontuner, Tuneo). We win on **detection quality, design and device coverage** (iPad, Duo, AUv3).
+
+## 2. Architecture
+
+```
+repo/
+├── CLAUDE.md
+├── core/                     # C++20 DSP library — platform-independent, no allocations in the audio path
+│   ├── include/tuner/        # public headers
+│   ├── src/
+│   ├── tests/                # Catch2 unit tests + synthetic signal generator
+│   ├── tools/bench/          # CLI: run detector over WAV/synthetic input, print CSV
+│   └── CMakeLists.txt
+├── apple/
+│   ├── Tuner.xcodeproj       # iOS/iPadOS app target (AUv3 + macOS targets later)
+│   ├── Tuner/                # SwiftUI app
+│   └── TunerCore/            # Swift Package wrapping core/ (C++ interop, cxxLanguageStandard .cxx20)
+├── fixtures/                 # WAV recordings (git LFS) — real strings, clean + distorted
+└── .github/workflows/ci.yml
+```
+
+- **DSP lives in C++** (`core/`), so it can be reused by the iOS app, the AUv3 extension and Android (JNI) later.
+- Swift calls C++ directly via **Swift/C++ interop** (Swift 5.9+), no Objective-C++ bridge.
+- `core/` must build and test **without Xcode** (CMake), so CI runs it on Linux/macOS.
+- Audio capture is platform code: `AVAudioEngine` input tap on iOS → lock-free ring buffer → core.
+
+## 3. DSP spec (`core/`)
+
+### Input
+- Mono float32, **48 kHz** (accept 44.1 kHz too; sample rate is a parameter, never hard-coded).
+- Analysis window **4096 samples** (~85 ms @ 48 kHz) — enough periods for low strings down to **B1 ≈ 61.7 Hz** (drop / 7-string).
+- Hop **512–1024 samples** (~10–20 ms) → UI updates at 50–100 Hz.
+
+### Algorithms
+- **MPM (McLeod Pitch Method)** as the primary detector; **YIN** implemented too for comparison in the bench tool.
+- Parabolic interpolation of the peak for sub-sample accuracy.
+- **Clarity / confidence** threshold (start at ~0.9 for MPM) → below it the reading is "unvoiced".
+- **Noise gate** on RMS (default **−50 dBFS**, user-adjustable −80…−20).
+- **Octave-error guard**: in auto string mode, prefer the candidate closest to a string of the current tuning.
+
+### Post-processing (`Tuner` state machine)
+- Median of last 5 readings + light EMA on cents.
+- `cents = 1200 · log2(f / f_target)`, A4 reference default **440 Hz** (range 415–466, 1 Hz steps).
+- **Lock**: |cents| ≤ tolerance (default **±3 ¢**, options ±1/±3/±5) held for ≥ 200 ms → `locked = true` (app plays a haptic once per lock).
+- Note naming: sharps or flats (user setting).
+- Auto string detection: nearest string of the active tuning; manual string selection overrides it.
+- Idle: no voiced reading for > 1 s → idle state.
+
+### Suggested public API (adjust freely, keep it small)
+
+```cpp
+namespace tuner {
+struct DetectorConfig { float sampleRate = 48000; int window = 4096; float clarityThreshold = 0.9f; float gateDb = -50; };
+struct PitchResult    { float hz; float clarity; float rmsDb; bool voiced; };
+
+class PitchDetector {               // MPM; YinDetector has the same interface
+public:
+  explicit PitchDetector(DetectorConfig);
+  PitchResult process(const float* samples, size_t count) noexcept;   // no allocation
+};
+
+struct TunerState { int midi; int stringIndex; float cents; bool voiced; bool locked; bool idle; };
+
+class Tuner {                       // smoothing, lock, string matching
+public:
+  void setTuning(const std::vector<float>& stringHz);
+  void setReference(float a4Hz);
+  void setTolerance(float cents);
+  TunerState push(const PitchResult&, double timestampSec);
+};
+}
+```
+
+### Quality targets (M1 acceptance)
+| Test | Target |
+|---|---|
+| Clean synthetic sine + harmonic-rich saw, E2…E4 and B1 | error ≤ **±1 ¢** |
+| Missing-fundamental signal (low E) | no octave error |
+| White/pink noise at −20 dB SNR | no false voiced readings above gate |
+| Detune sweep ±50 ¢ | monotonic, no jumps > 2 ¢ between hops |
+| Time to stable reading after pluck | ≤ **150 ms** |
+| CPU | `process()` on a 4096 window well under 1 ms on iPhone 17 Pro |
+
+The bench tool prints per-file CSV (time, hz, cents, clarity, voiced) for MPM and YIN side by side.
+Real recordings go to `fixtures/` (Richard will record each string clean + with distortion on an iPhone 17 Pro); start with synthetic signals until they exist.
+
+## 4. App spec (`apple/`)
+
+- **SwiftUI**, iOS/iPadOS **26+**, iPhone + iPad (universal). Test device: iPhone 17 Pro.
+- State via `@Observable` model; audio on its own thread, UI reads the latest `TunerState` (no locks on the audio thread).
+- Persistence: `@AppStorage` for settings and the selected tuning.
+- Haptic on lock (`.sensoryFeedback` / `UIImpactFeedbackGenerator`), optional "keep screen awake".
+- `NSMicrophoneUsageDescription`: "The tuner listens to find the note you play. Nothing is recorded or sent."
+
+### Screens (see canvas, page "Final — main screen")
+1. **Main tuner**: dial with no box — big note letter (+ small octave) inside a thin arc of **21 ticks** (−50…+50 ¢, 5 ¢ per tick, ±80° spread). Only lit ticks take the state colour; centre tick lit when in tune. One status line under it: `−12¢ ▲` / `+18¢ ▼` / `IN TUNE` / `PLAY A STRING`. **The whole screen background tints** with the state. Six string keys at the bottom (active key = ink fill, green dot = already tuned). Bottom **trio toolbar**: A4 circle (`440`) · tuning pill (`Standard EADGBE ⌃⌄`) · settings circle.
+2. **Idle**: neutral background, grey `–`, no lit ticks, no active key.
+3. **Microphone**: first-launch screen ("Let's hear your guitar" · "Allow microphone" · "NOTHING IS RECORDED OR SENT") and denied screen ("Microphone is off" · "Open Settings" · "Not now").
+4. **Tuning picker** (sheet): Guitar / Bass / Ukulele segmented control; presets Standard, Drop D, Half Step Down, Full Step Down, Drop C, DADGAD, Open G. Plain rows with hairline dividers, orange check on the selected one.
+5. **Settings** (sheet): A4 pitch stepper, in-tune range (±1/±3/±5 ¢), note names (sharps/flats), noise gate, haptic tap when in tune, keep screen awake. Footer: `NO ADS · NO TRACKING · NO ACCOUNT`.
+
+### Layout rule for larger screens
+Same structure everywhere: dial centred in free space, keys + toolbar anchored at the bottom, no split at a fold.
+Dial ≈ 62 % of screen width (max 520 pt); keys + toolbar ≈ 74 % (max 620 pt). Phone: dial 350 pt, keys 64 pt tall.
+
+### Design tokens
+| Token | Value |
+|---|---|
+| body / panel / ink | `#E8E8E3` / `#F4F4F0` / `#1D1D1B` |
+| grey / border | `#9A9A94` / `#C9C9C2` |
+| flat / sharp / in tune (marks) | `#2F6FED` / `#FF5A00` / `#2E9E4F` |
+| flat / sharp / in tune (text) | `#1F55C4` / `#A93A00` / `#1E7A3A` |
+| screen tint flat / sharp / in tune / idle | `#E4E9F2` / `#F3E7DF` / `#E2EEE4` / `#E8E8E3` |
+| unlit tick / centre tick | ink at 13 % / 32 % opacity |
+| fonts | **Inter Tight** (UI, note letter), **IBM Plex Mono** (values, labels) — both OFL, bundle them |
+| radii | keys 8 pt, sheets system, toolbar items full capsule |
+
+### Liquid Glass rules (Apple HIG)
+- Glass **only on the floating control layer**: the bottom toolbar items and sheet toolbar buttons. Use system components (`.glassEffect()`, `.buttonStyle(.glass)` / `.glassProminent`).
+- **No glass on content** (dial, keys, lists) and **never glass on glass**.
+- Tint only the primary action (Done in sheets).
+- Respect Reduce Transparency / Reduce Motion / Increase Contrast; support Dynamic Type for labels.
+
+## 5. Milestones
+
+| # | Scope | Done when |
+|---|---|---|
+| **M0** | Repo scaffold, CMake + Catch2, CI (build + tests on macOS runner), README | `ctest` green in CI |
+| **M1** | DSP core: MPM, YIN, note math, `Tuner` state machine, synthetic test signals, bench CLI | All quality targets in §3 pass |
+| **M2** | iOS app shell: audio capture, SwiftUI main screen (flat / sharp / in tune / idle), mic permission flow, haptic on lock | Tunes a real guitar on iPhone 17 Pro |
+| **M3** | Tuning picker + settings sheets, persistence | All settings work and survive relaunch |
+| **M4** | iPad (landscape + portrait) layouts | Matches canvas |
+| **M5** | Polish: accessibility, app icon, App Store metadata, TestFlight | TestFlight build |
+| Later | AUv3 plugin, iPhone Duo layouts, strobe mode, Mac target, Android (Kotlin + Oboe + JNI) | — |
+
+**Start with M0 → M1.** Detection quality is the biggest risk; UI comes after the core is proven.
+
+## 6. Conventions
+- C++20, `-Wall -Wextra -Werror`, clang-format (LLVM base, 4-space indent). No exceptions or allocation in `process()`.
+- Swift: SwiftUI + Swift Concurrency, no third-party UI libraries. SwiftLint optional.
+- Small PRs, conventional commits (`feat:`, `fix:`, `test:`, `chore:`).
+- Every DSP change comes with a test; keep the bench CSV output stable so runs can be diffed.
+
+## 7. Open questions
+- Final app name (candidate: **Peg**; "Tunr", "Tune", "OpenTuner", "Overtone", "Tine", "Unison" are taken).
+- App icon: three concepts on the canvas (A · Dial, B · Meter on ink, C · Orange knob) — not chosen.
+- Real string recordings for `fixtures/` — pending.
+- iPhone Duo point sizes are estimates (474×696 closed, 904×640 open) — confirm in the simulator.

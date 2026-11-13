@@ -1,0 +1,11 @@
+build/
+.cache/
+compile_commands.json
+.DS_Store
+
+# Xcode
+xcuserdata/
+DerivedData/
+*.xcuserstate
+.swiftpm/
+.build/
