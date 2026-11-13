@@ -1,0 +1,7 @@
+module TunerCoreCxx {
+    header "tuner/note.hpp"
+    header "tuner/detector.hpp"
+    header "tuner/tuner.hpp"
+    requires cplusplus
+    export *
+}
