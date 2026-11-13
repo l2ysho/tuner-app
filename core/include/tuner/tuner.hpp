@@ -37,6 +37,9 @@ class Tuner {
 
     // Empty tuning = chromatic mode. Extra strings beyond kMaxStrings are ignored.
     void setTuning(std::span<const float> stringHz) noexcept;
+    void setTuning(const float *stringHz, std::size_t count) noexcept {
+        setTuning(std::span<const float>(stringHz, count));
+    }
     void setReference(float a4Hz) noexcept;
     void setTolerance(float cents) noexcept;
     // -1 = auto string detection.

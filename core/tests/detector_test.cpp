@@ -112,3 +112,19 @@ TEST_CASE("process accepts more samples than the window", "[detector]") {
     REQUIRE(result.voiced);
     CHECK(std::abs(cents(result.hz, 196.0f)) <= 1.0f);
 }
+
+TEMPLATE_TEST_CASE("bass range down to B0 with a lower minHz", "[detector]", PitchDetector,
+                   YinDetector) {
+    const int midi = GENERATE(23, 28, 33); // B0, E1, A1
+    const double hz = midiToHz(midi);
+    auto signal = synth::saw(hz, 48000.0, kWindow);
+    synth::scaleToDb(signal, -20.0);
+    DetectorConfig cfg;
+    cfg.minHz = 28.0f;
+    TestType d(cfg);
+    const auto result = d.process(signal.data(), signal.size());
+
+    INFO("midi=" << midi << " hz=" << result.hz);
+    REQUIRE(result.voiced);
+    CHECK(std::abs(cents(result.hz, static_cast<float>(hz))) <= 1.0f);
+}
