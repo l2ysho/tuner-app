@@ -2,6 +2,7 @@
 
 #include <algorithm>
 #include <cmath>
+#include <span>
 
 namespace tuner {
 
@@ -69,7 +70,7 @@ PitchResult finish(const DetectorConfig &cfg, const Frame &frame, double lag,
 PitchDetector::PitchDetector(const DetectorConfig &config)
     : cfg_(config), correlator_(static_cast<std::size_t>(config.window), detail::maxLagFor(config)),
       nsdf_(detail::maxLagFor(config) + 1) {
-    keys_.reserve(nsdf_.size());
+    keys_.resize(nsdf_.size());
 }
 
 PitchResult PitchDetector::process(const float *samples, std::size_t count) noexcept {
@@ -96,7 +97,7 @@ PitchResult PitchDetector::process(const float *samples, std::size_t count) noex
     }
 
     // Key maxima: the highest point of each positive lobe after the zero-lag lobe.
-    keys_.clear();
+    std::size_t keyCount = 0;
     std::size_t tau = 1;
     while (tau <= frame.maxLag && nsdf_[tau] > 0.0) {
         ++tau;
@@ -112,24 +113,25 @@ PitchResult PitchDetector::process(const float *samples, std::size_t count) noex
         } else if (inLobe) {
             inLobe = false;
             if (best >= frame.minLag) {
-                keys_.push_back(best);
+                keys_[keyCount++] = best;
             }
         }
     }
     if (inLobe && best >= frame.minLag && nsdf_[best + 1] < nsdf_[best]) {
-        keys_.push_back(best);
+        keys_[keyCount++] = best;
     }
-    if (keys_.empty()) {
+    if (keyCount == 0) {
         return silent;
     }
 
     double highest = 0.0;
-    for (std::size_t k : keys_) {
+    const auto keys = std::span<const std::size_t>(keys_.data(), keyCount);
+    for (std::size_t k : keys) {
         highest = std::max(highest, nsdf_[k]);
     }
     const double cutoff = cfg_.peakThreshold * highest;
-    const std::size_t pick = *std::find_if(keys_.begin(), keys_.end(),
-                                           [&](std::size_t k) { return nsdf_[k] >= cutoff; });
+    const std::size_t pick =
+        *std::find_if(keys.begin(), keys.end(), [&](std::size_t k) { return nsdf_[k] >= cutoff; });
 
     const auto v = detail::parabolic(nsdf_[pick - 1], nsdf_[pick], nsdf_[pick + 1]);
     return detail::finish(cfg_, frame, static_cast<double>(pick) + v.offset, v.value);

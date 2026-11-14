@@ -48,7 +48,7 @@ class PitchDetector {
     DetectorConfig cfg_;
     detail::Correlator correlator_;
     std::vector<double> nsdf_;
-    std::vector<std::size_t> keys_;
+    std::vector<std::size_t> keys_; // sized once: one key per lobe at most, so never grows
 };
 
 // YIN (de Cheveigné & Kawahara 2002), same interface, used for comparison.

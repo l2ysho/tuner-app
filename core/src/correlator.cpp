@@ -13,11 +13,11 @@ Fft::Fft(std::size_t n) : n_(n), twiddles_(n / 2), bitReverse_(n) {
         twiddles_[k] = std::polar(1.0, -2.0 * std::numbers::pi * static_cast<double>(k) /
                                            static_cast<double>(n));
     }
-    const int bits = std::countr_zero(n);
+    const auto bits = static_cast<unsigned>(std::countr_zero(n));
     for (std::size_t i = 0; i < n; ++i) {
         std::uint32_t rev = 0;
-        for (int b = 0; b < bits; ++b) {
-            rev |= ((i >> b) & 1u) << (bits - 1 - b);
+        for (unsigned b = 0; b < bits; ++b) {
+            rev |= static_cast<std::uint32_t>((i >> b) & 1u) << (bits - 1u - b);
         }
         bitReverse_[i] = rev;
     }
@@ -33,7 +33,7 @@ void Fft::transform(std::complex<double> *data, bool inverse) const noexcept {
             std::swap(data[i], data[bitReverse_[i]]);
         }
     }
-    for (std::size_t len = 2; len <= n_; len <<= 1) {
+    for (std::size_t len = 2; len <= n_; len *= 2) {
         const std::size_t half = len / 2;
         const std::size_t step = n_ / len;
         for (std::size_t i = 0; i < n_; i += len) {
