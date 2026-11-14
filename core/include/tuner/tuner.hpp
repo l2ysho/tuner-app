@@ -12,6 +12,8 @@ namespace tuner {
 struct TunerConfig {
     float a4Hz = kDefaultA4Hz;
     float toleranceCents = 3.0f;
+    // Once locked, the lock holds until |cents| exceeds tolerance + this margin.
+    float releaseMarginCents = 1.5f;
     double lockHoldSec = 0.2;
     double idleAfterSec = 1.0;
     float emaAlpha = 0.35f;

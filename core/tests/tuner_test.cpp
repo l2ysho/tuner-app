@@ -83,6 +83,55 @@ TEST_CASE("octave guard keeps readings that already match a string") {
     CHECK(s.stringIndex == 5);
 }
 
+TEST_CASE("octave guard does not fold a badly detuned string onto another string") {
+    Tuner t;
+    t.setTuning(kStandard);
+    // Plain nearest-string folding would turn these into A2 -51 c and D3 +40 c.
+    const auto g = t.push(voiced(detuned(195.998f, 150.0f)), 0.0);
+    CHECK(g.stringIndex == 3);
+    CHECK(g.cents == Approx(150.0f).margin(0.1));
+    t.reset();
+    const auto e = t.push(voiced(detuned(82.4069f, -160.0f)), 0.0);
+    CHECK(e.stringIndex == 0);
+    CHECK(e.cents == Approx(-160.0f).margin(0.1));
+}
+
+TEST_CASE("a single harmonic outlier does not switch the string") {
+    Tuner t;
+    t.setTuning(kStandard);
+    const float e2 = detuned(82.4069f, 5.0f);
+    double now = 0.0;
+    auto check = [&](const TunerState &s) {
+        INFO("t=" << now);
+        CHECK(s.stringIndex == 0);
+        CHECK(s.cents == Approx(5.0f).margin(0.1));
+    };
+    for (int i = 0; i < 5; ++i, now += kHopSec) {
+        check(t.push(voiced(e2), now));
+    }
+    check(t.push(voiced(247.0f), now));
+    now += kHopSec;
+    for (int i = 0; i < 5; ++i, now += kHopSec) {
+        check(t.push(voiced(e2), now));
+    }
+}
+
+TEST_CASE("a sustained new string switches the target once it wins the median") {
+    Tuner t;
+    t.setTuning(kStandard);
+    double now = 0.0;
+    for (int i = 0; i < 5; ++i, now += kHopSec) {
+        t.push(voiced(82.4069f), now);
+    }
+    CHECK(t.push(voiced(detuned(110.0f, 10.0f)), now).stringIndex == 0);
+    now += kHopSec;
+    CHECK(t.push(voiced(detuned(110.0f, 10.0f)), now).stringIndex == 0);
+    now += kHopSec;
+    const auto s = t.push(voiced(detuned(110.0f, 10.0f)), now);
+    CHECK(s.stringIndex == 1);
+    CHECK(s.cents == Approx(10.0f).margin(0.1));
+}
+
 TEST_CASE("median rejects a single outlier") {
     Tuner t;
     double now = 0.0;
@@ -112,6 +161,54 @@ TEST_CASE("lock needs the tolerance held for 200 ms") {
         }
         CHECK_FALSE(s.locked);
     }
+}
+
+TEST_CASE("lock has hysteresis around the tolerance edge") {
+    Tuner t;
+    double now = 0.0;
+    TunerState s;
+    for (; now < 0.3; now += kHopSec) {
+        s = t.push(voiced(detuned(440.0f, 1.0f)), now);
+    }
+    REQUIRE(s.locked);
+    // Inside tolerance + release margin (3 + 1.5): the lock must hold, not re-trigger.
+    for (int i = 0; i < 50; ++i, now += kHopSec) {
+        s = t.push(voiced(detuned(440.0f, 4.2f)), now);
+        CHECK(s.locked);
+    }
+    for (int i = 0; i < 20; ++i, now += kHopSec) {
+        s = t.push(voiced(detuned(440.0f, 4.8f)), now);
+    }
+    CHECK_FALSE(s.locked);
+    // Once released, relocking needs the plain tolerance again.
+    for (int i = 0; i < 50; ++i, now += kHopSec) {
+        s = t.push(voiced(detuned(440.0f, 4.2f)), now);
+        CHECK_FALSE(s.locked);
+    }
+}
+
+TEST_CASE("an unvoiced reading drops the lock and restarts the hold timer") {
+    Tuner t;
+    double now = 0.0;
+    TunerState s;
+    for (; now < 0.3; now += kHopSec) {
+        s = t.push(voiced(440.0f), now);
+    }
+    REQUIRE(s.locked);
+    s = t.push(unvoiced(), now);
+    CHECK_FALSE(s.locked);
+    CHECK_FALSE(s.idle);
+    CHECK(s.midi == 69);
+    now += kHopSec;
+    const double replucked = now;
+    for (; now < replucked + 0.19; now += kHopSec) {
+        s = t.push(voiced(440.0f), now);
+        CHECK_FALSE(s.locked);
+    }
+    for (; now < replucked + 0.25; now += kHopSec) {
+        s = t.push(voiced(440.0f), now);
+    }
+    CHECK(s.locked);
 }
 
 TEST_CASE("tolerance setting controls the lock") {

@@ -7,6 +7,8 @@ namespace tuner {
 
 namespace {
 constexpr float kOctaveGuardCents = 100.0f;
+constexpr float kOctaveFoldCents = 45.0f;
+constexpr float kSubOctaveGuardCents = 600.0f;
 } // namespace
 
 Tuner::Tuner(const TunerConfig &config) : cfg_(config) {}
@@ -61,15 +63,25 @@ float Tuner::foldOctave(float hz) const noexcept {
         }
         return best;
     };
-    const float raw = distance(hz);
-    if (raw <= kOctaveGuardCents) {
+    if (distance(hz) <= kOctaveGuardCents) {
         return hz;
     }
+    // An octave error keeps the pitch class, so the folded reading must clearly be the string's
+    // note. At +-50 c the class is ambiguous and a badly detuned neighbour string is likelier.
+    auto isOctaveError = [&](float f) { return distance(f) <= kOctaveFoldCents; };
     // Down first: detectors err an octave high far more often than low.
-    if (distance(hz * 0.5f) <= kOctaveGuardCents) {
+    if (isOctaveError(hz * 0.5f)) {
         return hz * 0.5f;
     }
-    if (distance(hz * 2.0f) <= kOctaveGuardCents) {
+    // Sub-octave errors are rare, so only trust one when the reading sits far below every
+    // candidate string; otherwise a slack low string would be folded onto a higher one.
+    float lowest = strings_[manualString_ >= 0 ? static_cast<std::size_t>(manualString_) : 0];
+    if (manualString_ < 0) {
+        for (std::size_t i = 1; i < stringCount_; ++i) {
+            lowest = std::min(lowest, strings_[i]);
+        }
+    }
+    if (cents(hz, lowest) < -kSubOctaveGuardCents && isOctaveError(hz * 2.0f)) {
         return hz * 2.0f;
     }
     return hz;
@@ -97,6 +109,8 @@ Tuner::Target Tuner::targetFor(float hz) const noexcept {
 TunerState Tuner::push(const PitchResult &reading, double timestampSec) noexcept {
     if (!reading.voiced || reading.hz <= 0.0f) {
         state_.voiced = false;
+        state_.locked = false;
+        inToleranceSinceSec_ = -1.0;
         if (!state_.idle && timestampSec - lastVoicedSec_ > cfg_.idleAfterSec) {
             clearSmoothing();
             state_ = {};
@@ -106,13 +120,6 @@ TunerState Tuner::push(const PitchResult &reading, double timestampSec) noexcept
     lastVoicedSec_ = timestampSec;
 
     const float hz = foldOctave(reading.hz);
-    const Target target = targetFor(hz);
-    if (target.midi != currentTargetMidi_ || target.stringIndex != currentString_) {
-        clearSmoothing();
-        currentTargetMidi_ = target.midi;
-        currentString_ = target.stringIndex;
-    }
-
     history_[historyNext_] = std::log2(hz);
     historyNext_ = (historyNext_ + 1) % kMedianSize;
     historyCount_ = std::min(historyCount_ + 1, kMedianSize);
@@ -121,11 +128,23 @@ TunerState Tuner::push(const PitchResult &reading, double timestampSec) noexcept
     std::sort(sorted.begin(), sorted.begin() + static_cast<std::ptrdiff_t>(historyCount_));
     const float medianHz = std::exp2(sorted[historyCount_ / 2]);
 
+    // Target follows the median so a single outlier (e.g. a strong harmonic) cannot switch it.
+    const Target target = targetFor(medianHz);
+    bool wasLocked = state_.locked;
+    if (target.midi != currentTargetMidi_ || target.stringIndex != currentString_) {
+        emaValid_ = false;
+        inToleranceSinceSec_ = -1.0;
+        wasLocked = false;
+        currentTargetMidi_ = target.midi;
+        currentString_ = target.stringIndex;
+    }
+
     const float rawCents = cents(medianHz, target.hz);
     ema_ = emaValid_ ? ema_ + cfg_.emaAlpha * (rawCents - ema_) : rawCents;
     emaValid_ = true;
 
-    const bool inTolerance = std::abs(ema_) <= cfg_.toleranceCents;
+    const float window = cfg_.toleranceCents + (wasLocked ? cfg_.releaseMarginCents : 0.0f);
+    const bool inTolerance = std::abs(ema_) <= window;
     if (!inTolerance) {
         inToleranceSinceSec_ = -1.0;
     } else if (inToleranceSinceSec_ < 0.0) {
@@ -138,7 +157,9 @@ TunerState Tuner::push(const PitchResult &reading, double timestampSec) noexcept
     state_.cents = ema_;
     state_.voiced = true;
     state_.idle = false;
-    state_.locked = inTolerance && timestampSec - inToleranceSinceSec_ >= cfg_.lockHoldSec - 1e-9;
+    state_.locked =
+        wasLocked ? inTolerance
+                  : inTolerance && timestampSec - inToleranceSinceSec_ >= cfg_.lockHoldSec - 1e-9;
     return state_;
 }
 

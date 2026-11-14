@@ -119,11 +119,13 @@ final class TunerModel {
             demo = nil
         #endif
 
-        audio = AudioController { [weak self] reading in
-            DispatchQueue.main.async {
-                MainActor.assumeIsolated { self?.receive(reading) }
-            }
-        }
+        audio = AudioController(
+            onReading: { [weak self] reading, session in
+                DispatchQueue.main.async {
+                    MainActor.assumeIsolated { self?.receive(reading, session: session) }
+                }
+            },
+            onMicrophoneLost: { [weak self] in self?.microphoneLost() })
         refreshMicAccess()
         pushConfig()
     }
@@ -169,7 +171,12 @@ final class TunerModel {
     }
 
     func audioInterrupted(ended: Bool) {
-        if ended, isActive { startAudio() } else { audio.stop() }
+        if ended, isActive {
+            startAudio()
+        } else {
+            audio.stop()
+            reading = .idle
+        }
     }
 
     // MARK: Private
@@ -188,7 +195,13 @@ final class TunerModel {
         }
     }
 
-    private func receive(_ new: TunerReading) {
+    private func microphoneLost() {
+        reading = .idle
+        if isActive { startAudio() }
+    }
+
+    private func receive(_ new: TunerReading, session: UInt64) {
+        guard session == audio.session else { return }
         if new.locked, !reading.locked {
             lockCount += 1
             if new.stringIndex >= 0 { tunedStrings.insert(new.stringIndex) }
