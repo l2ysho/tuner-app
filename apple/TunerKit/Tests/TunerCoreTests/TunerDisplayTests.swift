@@ -1,7 +1,6 @@
 import Testing
-import TunerCore
 
-@testable import Tuner
+@testable import TunerCore
 
 private func reading(midi: Int = 45, string: Int = 1, cents: Float, locked: Bool = false) -> TunerReading {
     TunerReading(
@@ -70,12 +69,12 @@ private func display(_ r: TunerReading, manual: Int? = nil, accidentals: Acciden
 }
 
 @Test func layoutFollowsTheLargeScreenRule() {
-    let phone = TunerScreen.Layout(width: 390)
+    let phone = ScreenLayout(width: 390)
     #expect(phone.dialWidth == 350)
     #expect(phone.keysWidth == 350)
-    let pad = TunerScreen.Layout(width: 1194)
+    let pad = ScreenLayout(width: 1194)
     #expect(pad.dialWidth == 520)
     #expect(pad.keysWidth == 620)
-    let padPortrait = TunerScreen.Layout(width: 834)
+    let padPortrait = ScreenLayout(width: 834)
     #expect(abs(padPortrait.dialWidth - 834 * 0.62) < 0.01)
 }

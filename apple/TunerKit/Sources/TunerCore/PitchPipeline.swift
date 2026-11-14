@@ -1,4 +1,4 @@
-internal import TunerCoreCxx
+import TunerDSPC
 
 /// One analysed hop: the tuner state plus the raw level, ready for the UI.
 public struct TunerReading: Sendable, Equatable {
@@ -31,6 +31,48 @@ public struct TunerReading: Sendable, Equatable {
         rmsDb: -120)
 }
 
+public enum PitchAlgorithm: Sendable {
+    case mpm, yin
+
+    var c: tdsp_algorithm { self == .mpm ? TDSP_ALGORITHM_MPM : TDSP_ALGORITHM_YIN }
+}
+
+public struct PitchEstimate: Sendable, Equatable {
+    public var hz: Float
+    public var clarity: Float
+    public var rmsDb: Float
+    public var voiced: Bool
+}
+
+/// Owns one C detector. `process` does not allocate, so it is safe on the audio thread.
+public final class PitchDetector {
+    public let sampleRate: Double
+    private let handle: OpaquePointer
+
+    public init(
+        algorithm: PitchAlgorithm = .mpm, sampleRate: Double, window: Int = PitchPipeline.windowSize,
+        minHz: Float = 50, gateDb: Float = -50
+    ) {
+        var config = tdsp_detector_config_default()
+        config.sample_rate = Float(sampleRate)
+        config.window = Int32(window)
+        config.min_hz = minHz
+        config.gate_db = gateDb
+        guard let handle = tdsp_detector_create(algorithm.c, &config) else {
+            fatalError("tdsp_detector_create failed: out of memory")
+        }
+        self.sampleRate = sampleRate
+        self.handle = handle
+    }
+
+    deinit { tdsp_detector_destroy(handle) }
+
+    public func process(_ samples: UnsafeBufferPointer<Float>) -> PitchEstimate {
+        let p = tdsp_detector_process(handle, samples.baseAddress, samples.count)
+        return PitchEstimate(hz: p.hz, clarity: p.clarity, rmsDb: p.rms_db, voiced: p.voiced)
+    }
+}
+
 /// Detector + tuner state machine. Not thread-safe: keep every call on one queue.
 public final class PitchPipeline {
     public static let windowSize = 4096
@@ -38,56 +80,48 @@ public final class PitchPipeline {
     public let sampleRate: Double
     public private(set) var minHz: Float
     public private(set) var gateDb: Float
-    private var detector: tuner.PitchDetector
-    private var stateMachine: tuner.Tuner
+    private var detector: PitchDetector
+    private let tuner: OpaquePointer
 
     public init(sampleRate: Double, minHz: Float = 50, gateDb: Float = -50) {
         self.sampleRate = sampleRate
         self.minHz = minHz
         self.gateDb = gateDb
-        detector = tuner.PitchDetector(
-            Self.config(sampleRate: sampleRate, minHz: minHz, gateDb: gateDb))
-        stateMachine = tuner.Tuner(tuner.TunerConfig())
+        detector = PitchDetector(sampleRate: sampleRate, minHz: minHz, gateDb: gateDb)
+        guard let tuner = tdsp_tuner_create(nil) else {
+            fatalError("tdsp_tuner_create failed: out of memory")
+        }
+        self.tuner = tuner
     }
 
-    private static func config(sampleRate: Double, minHz: Float, gateDb: Float)
-        -> tuner.DetectorConfig
-    {
-        var cfg = tuner.DetectorConfig()
-        cfg.sampleRate = Float(sampleRate)
-        cfg.window = Int32(windowSize)
-        cfg.minHz = minHz
-        cfg.gateDb = gateDb
-        return cfg
-    }
+    deinit { tdsp_tuner_destroy(tuner) }
 
     /// Allocates a new detector; call off the real-time thread.
     public func configureDetector(minHz: Float, gateDb: Float) {
         guard minHz != self.minHz || gateDb != self.gateDb else { return }
         self.minHz = minHz
         self.gateDb = gateDb
-        detector = tuner.PitchDetector(
-            Self.config(sampleRate: sampleRate, minHz: minHz, gateDb: gateDb))
+        detector = PitchDetector(sampleRate: sampleRate, minHz: minHz, gateDb: gateDb)
     }
 
     public func setStrings(_ hz: [Float]) {
-        hz.withUnsafeBufferPointer { buffer in
-            stateMachine.setTuning(buffer.baseAddress, buffer.count)
-        }
+        hz.withUnsafeBufferPointer { tdsp_tuner_set_tuning(tuner, $0.baseAddress, $0.count) }
     }
 
-    public func setReference(_ a4Hz: Float) { stateMachine.setReference(a4Hz) }
-    public func setTolerance(_ cents: Float) { stateMachine.setTolerance(cents) }
+    public func setReference(_ a4Hz: Float) { tdsp_tuner_set_reference(tuner, a4Hz) }
+    public func setTolerance(_ cents: Float) { tdsp_tuner_set_tolerance(tuner, cents) }
     /// -1 = auto string detection.
-    public func setManualString(_ index: Int) { stateMachine.setManualString(Int32(index)) }
-    public func reset() { stateMachine.reset() }
+    public func setManualString(_ index: Int) { tdsp_tuner_set_manual_string(tuner, Int32(index)) }
+    public func reset() { tdsp_tuner_reset(tuner) }
 
     public func process(_ window: UnsafeBufferPointer<Float>, timestamp: Double) -> TunerReading {
-        guard let base = window.baseAddress else { return .idle }
-        let pitch = detector.process(base, window.count)
-        let state = stateMachine.push(pitch, timestamp)
+        guard window.baseAddress != nil else { return .idle }
+        let pitch = detector.process(window)
+        let state = tdsp_tuner_push(
+            tuner, tdsp_pitch(hz: pitch.hz, clarity: pitch.clarity, rms_db: pitch.rmsDb, voiced: pitch.voiced),
+            timestamp)
         return TunerReading(
-            midi: Int(state.midi), stringIndex: Int(state.stringIndex), hz: state.hz,
+            midi: Int(state.midi), stringIndex: Int(state.string_index), hz: state.hz,
             cents: state.cents, voiced: state.voiced, locked: state.locked, idle: state.idle,
             rmsDb: pitch.rmsDb)
     }

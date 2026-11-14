@@ -76,7 +76,8 @@ struct SlidersIcon: View {
             context.stroke(lines, with: .foreground, style: style)
             for centre in [CGPoint(x: 9, y: 7), CGPoint(x: 15, y: 17)] {
                 let knob = Path(
-                    ellipseIn: CGRect(x: (centre.x - 2.3) * s, y: (centre.y - 2.3) * s, width: 4.6 * s, height: 4.6 * s))
+                    ellipseIn: CGRect(x: (centre.x - 2.3) * s, y: (centre.y - 2.3) * s, width: 4.6 * s, height: 4.6 * s)
+                )
                 context.fill(knob, with: .color(Palette.panel))
                 context.stroke(knob, with: .foreground, style: style)
             }

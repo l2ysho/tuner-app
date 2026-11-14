@@ -1,4 +1,6 @@
+import CoreText
 import SwiftUI
+import TunerCore
 import UIKit
 
 extension Color {
@@ -59,45 +61,48 @@ enum Palette {
     }
 }
 
-/// Inter Tight and IBM Plex Mono when bundled (apple/Tuner/Fonts), system fonts otherwise.
+/// Inter Tight and IBM Plex Mono when registered, system fonts otherwise.
 enum Typeface {
     enum Weight { case regular, medium, semibold, bold }
 
     static func ui(_ size: CGFloat, _ weight: Weight, relativeTo style: Font.TextStyle = .body) -> Font {
-        let name = switch weight {
-        case .regular, .medium: "InterTight-Medium"
-        case .semibold: "InterTight-SemiBold"
-        case .bold: "InterTight-Bold"
-        }
+        let name =
+            switch weight {
+            case .regular, .medium: "InterTight-Medium"
+            case .semibold: "InterTight-SemiBold"
+            case .bold: "InterTight-Bold"
+            }
         if isAvailable(name) { return .custom(name, size: size, relativeTo: style) }
         return .system(size: scaled(size, style), weight: weight.system)
     }
 
     static func mono(_ size: CGFloat, _ weight: Weight, relativeTo style: Font.TextStyle = .caption) -> Font {
-        let name = switch weight {
-        case .regular: "IBMPlexMono-Regular"
-        case .medium: "IBMPlexMono-Medium"
-        case .semibold, .bold: "IBMPlexMono-SemiBold"
-        }
+        let name =
+            switch weight {
+            case .regular: "IBMPlexMono-Regular"
+            case .medium: "IBMPlexMono-Medium"
+            case .semibold, .bold: "IBMPlexMono-SemiBold"
+            }
         if isAvailable(name) { return .custom(name, size: size, relativeTo: style) }
         return .system(size: scaled(size, style), weight: weight.system, design: .monospaced)
     }
 
     /// Dynamic Type scaling for the system-font fallback, matching what `.custom(relativeTo:)` does.
     private static func scaled(_ size: CGFloat, _ style: Font.TextStyle) -> CGFloat {
-        let uiStyle: UIFont.TextStyle = switch style {
-        case .largeTitle: .largeTitle
-        case .title: .title1
-        case .title2: .title2
-        case .title3: .title3
-        case .headline: .headline
-        case .subheadline: .subheadline
-        case .callout: .callout
-        case .footnote: .footnote
-        case .caption: .caption1
-        case .caption2: .caption2
-        default: .body
-        }
+        let uiStyle: UIFont.TextStyle =
+            switch style {
+            case .largeTitle: .largeTitle
+            case .title: .title1
+            case .title2: .title2
+            case .title3: .title3
+            case .headline: .headline
+            case .subheadline: .subheadline
+            case .callout: .callout
+            case .footnote: .footnote
+            case .caption: .caption1
+            case .caption2: .caption2
+            default: .body
+            }
         return UIFontMetrics(forTextStyle: uiStyle).scaledValue(for: size)
     }
 
@@ -115,6 +120,17 @@ enum Typeface {
     }
 
     private static func isAvailable(_ name: String) -> Bool { UIFont(name: name, size: 12) != nil }
+
+    private static let registration: Void = {
+        guard let folder = Bundle.module.url(forResource: "Fonts", withExtension: nil),
+            let files = try? FileManager.default.contentsOfDirectory(at: folder, includingPropertiesForKeys: nil)
+        else { return }
+        let fonts = files.filter { $0.pathExtension == "ttf" }
+        CTFontManagerRegisterFontURLs(fonts as CFArray, .process, true, nil)
+    }()
+
+    /// The fonts ship in this package, not the app, so previews and tests render them too.
+    static func registerBundledFonts() { _ = registration }
 }
 
 extension Typeface.Weight {

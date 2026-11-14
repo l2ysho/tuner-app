@@ -1,4 +1,5 @@
 import SwiftUI
+import TunerCore
 
 /// The boxless dial: 21 ticks on a ±80° arc with the note letter inside.
 /// Geometry follows the canvas at 350 × 236 pt and scales with `width`.

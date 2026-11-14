@@ -53,7 +53,11 @@ struct SettingsSheet: View {
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .confirmationAction) {
-                    Button(role: .confirm) { dismiss() } label: { ConfirmLabel() }
+                    Button(role: .confirm) {
+                        dismiss()
+                    } label: {
+                        ConfirmLabel()
+                    }
                 }
             }
         }

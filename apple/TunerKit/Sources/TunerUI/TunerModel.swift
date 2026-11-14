@@ -1,15 +1,12 @@
-import AVFoundation
 import Observation
 import SwiftUI
 import TunerCore
 
-enum MicAccess: Equatable {
-    case undetermined, granted, denied
-}
+typealias MicAccess = MicrophonePermissionStatus
 
 @MainActor
 @Observable
-final class TunerModel {
+public final class TunerModel {
     // MARK: Settings (persisted in UserDefaults)
 
     var tuningID: String {
@@ -72,7 +69,10 @@ final class TunerModel {
     let demo: DemoSignal?
     private var isActive = false
     private let defaults: UserDefaults
-    @ObservationIgnored private var audio: AudioController!
+    @ObservationIgnored private var engine: TunerEngine!
+    @ObservationIgnored private let permission: any MicrophonePermission
+    @ObservationIgnored private let makeMicrophone: @MainActor () -> any AudioSource
+    @ObservationIgnored private var microphone: (any AudioSource)?
 
     var tuning: Tuning { Tuning.with(id: tuningID) ?? .standard }
 
@@ -92,8 +92,18 @@ final class TunerModel {
         return nil
     }
 
-    init(defaults: UserDefaults = .standard, arguments: [String] = ProcessInfo.processInfo.arguments) {
+    /// `makeMicrophone` and `permission` come from TunerAudio in the app; `demo` replaces the
+    /// microphone with a synthetic tone.
+    public init(
+        defaults: UserDefaults = .standard,
+        demo: DemoSignal? = nil,
+        permission: any MicrophonePermission,
+        makeMicrophone: @escaping @MainActor () -> any AudioSource
+    ) {
         self.defaults = defaults
+        self.demo = demo
+        self.permission = permission
+        self.makeMicrophone = makeMicrophone
         defaults.register(defaults: [
             Keys.tuning: Tuning.standard.id,
             Keys.a4: 440,
@@ -104,31 +114,18 @@ final class TunerModel {
             Keys.keepAwake: false,
         ])
         tuningID = defaults.string(forKey: Keys.tuning) ?? Tuning.standard.id
-        let storedA4 = defaults.integer(forKey: Keys.a4)
-        a4 = storedA4
+        a4 = defaults.integer(forKey: Keys.a4)
         toleranceCents = defaults.integer(forKey: Keys.tolerance)
         accidentals = Accidentals(rawValue: defaults.string(forKey: Keys.accidentals) ?? "") ?? .sharps
         gateDb = defaults.double(forKey: Keys.gate)
         hapticsOn = defaults.bool(forKey: Keys.haptics)
         keepAwake = defaults.bool(forKey: Keys.keepAwake)
 
-        #if DEBUG
-            if let i = arguments.firstIndex(of: "-demo"), i + 1 < arguments.count {
-                demo = DemoSignal.named(arguments[i + 1], a4: Float(storedA4))
-            } else {
-                demo = nil
+        engine = TunerEngine { [weak self] reading, session in
+            DispatchQueue.main.async {
+                MainActor.assumeIsolated { self?.receive(reading, session: session) }
             }
-        #else
-            demo = nil
-        #endif
-
-        audio = AudioController(
-            onReading: { [weak self] reading, session in
-                DispatchQueue.main.async {
-                    MainActor.assumeIsolated { self?.receive(reading, session: session) }
-                }
-            },
-            onMicrophoneLost: { [weak self] in self?.microphoneLost() })
+        }
         refreshMicAccess()
         pushConfig()
     }
@@ -145,7 +142,7 @@ final class TunerModel {
     }
 
     func requestMicrophone() async {
-        let granted = await AVAudioApplication.requestRecordPermission()
+        let granted = await permission.request()
         micAccess = granted ? .granted : .denied
         micSkipped = false
         if granted, isActive { startAudio() }
@@ -168,39 +165,51 @@ final class TunerModel {
 
     func sceneLeftActive() {
         isActive = false
-        audio.stop()
+        engine.stop()
         resetReading()
         updateIdleTimer()
-    }
-
-    func audioInterrupted(ended: Bool) {
-        if ended, isActive {
-            startAudio()
-        } else {
-            audio.stop()
-            resetReading()
-        }
     }
 
     // MARK: Private
 
     private func startAudio() {
         if let demo {
-            audio.startDemo(demo)
+            try? engine.start(SyntheticSource(demo))
             return
         }
         guard micAccess == .granted else { return }
         do {
-            try audio.startMicrophone()
+            try engine.start(microphoneSource())
             audioUnavailable = false
         } catch {
             audioUnavailable = true
         }
     }
 
-    private func microphoneLost() {
-        resetReading()
-        if isActive { startAudio() }
+    private func microphoneSource() -> any AudioSource {
+        if let microphone { return microphone }
+        let source = makeMicrophone()
+        source.onEvent = { [weak self] event in self?.handle(event) }
+        microphone = source
+        return source
+    }
+
+    private func handle(_ event: AudioSourceEvent) {
+        switch event {
+        case .interrupted:
+            engine.stop()
+            resetReading()
+        case .resumed, .lost:
+            resetReading()
+            if isActive { startAudio() }
+        }
+    }
+
+    /// Shows a fixed reading without audio (previews and snapshot tests).
+    func show(_ reading: TunerReading) {
+        latest = reading
+        self.reading = reading
+        if reading.locked, reading.stringIndex >= 0 { tunedStrings.insert(reading.stringIndex) }
     }
 
     private func resetReading() {
@@ -209,7 +218,7 @@ final class TunerModel {
     }
 
     private func receive(_ new: TunerReading, session: UInt64) {
-        guard session == audio.session else { return }
+        guard session == engine.session else { return }
         if new.locked, !latest.locked {
             lockCount += 1
             if new.stringIndex >= 0 { tunedStrings.insert(new.stringIndex) }
@@ -221,17 +230,13 @@ final class TunerModel {
     }
 
     private func refreshMicAccess() {
-        switch AVAudioApplication.shared.recordPermission {
-        case .granted: micAccess = .granted
-        case .denied: micAccess = .denied
-        default: micAccess = .undetermined
-        }
+        micAccess = permission.status
     }
 
     private func pushConfig() {
-        guard let audio else { return }
+        guard let engine else { return }
         let tuning = tuning
-        audio.apply(
+        engine.apply(
             PipelineConfig(
                 strings: tuning.frequencies(a4: Float(a4)), a4: Float(a4),
                 tolerance: Float(toleranceCents), manualString: manualString ?? -1,

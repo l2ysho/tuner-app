@@ -1,32 +1,30 @@
-import TunerCore
-
-enum TuneState: Equatable {
+public enum TuneState: Sendable, Equatable {
     case idle, flat, sharp, inTune
 }
 
 /// Everything the main screen shows, derived from one reading. Pure, so it is unit-tested.
-struct TunerDisplay: Equatable {
-    static let tickCount = 21
-    static let centsPerTick: Float = 5
-    static let degreesPerTick: Double = 8
+public struct TunerDisplay: Sendable, Equatable {
+    public static let tickCount = 21
+    public static let centsPerTick: Float = 5
+    public static let degreesPerTick: Double = 8
 
-    struct Tick: Equatable {
-        let index: Int  // -10 ... 10
-        let lit: Bool
-        var isCentre: Bool { index == 0 }
-        var degrees: Double { Double(index) * TunerDisplay.degreesPerTick }
+    public struct Tick: Sendable, Equatable {
+        public let index: Int  // -10 ... 10
+        public let lit: Bool
+        public var isCentre: Bool { index == 0 }
+        public var degrees: Double { Double(index) * TunerDisplay.degreesPerTick }
     }
 
-    let state: TuneState
-    let letter: String
-    let octave: String
-    let cents: Int
-    let status: String
-    let ticks: [Tick]
-    let activeString: Int?
-    let accessibilityLabel: String
+    public let state: TuneState
+    public let letter: String
+    public let octave: String
+    public let cents: Int
+    public let status: String
+    public let ticks: [Tick]
+    public let activeString: Int?
+    public let accessibilityLabel: String
 
-    init(reading: TunerReading, tuning: Tuning, accidentals: Accidentals, manualString: Int?) {
+    public init(reading: TunerReading, tuning: Tuning, accidentals: Accidentals, manualString: Int?) {
         let idle = reading.idle || reading.midi < 0
         let c = max(-50, min(50, reading.cents))
         let rounded = Int(c.rounded())

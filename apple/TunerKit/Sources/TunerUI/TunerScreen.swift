@@ -14,7 +14,7 @@ struct TunerScreen: View {
     var body: some View {
         let display = model.display
         GeometryReader { proxy in
-            let layout = Layout(width: proxy.size.width)
+            let layout = ScreenLayout(width: proxy.size.width)
             VStack(spacing: 0) {
                 Spacer(minLength: 24)
                 VStack(spacing: 16 * layout.dialScale) {
@@ -74,26 +74,6 @@ struct TunerScreen: View {
                 .foregroundStyle(Palette.text(display.state))
                 .contentTransition(.numericText())
                 .accessibilityHidden(true)
-        }
-    }
-
-    /// Phone: dial 350 pt, keys full width. Wider screens: dial ≈ 62 % (≤ 520), keys ≈ 74 % (≤ 620).
-    struct Layout {
-        let dialWidth: CGFloat
-        let keysWidth: CGFloat
-        let keyHeight: CGFloat
-        var dialScale: CGFloat { dialWidth / 350 }
-
-        init(width: CGFloat) {
-            if width < 600 {
-                dialWidth = min(350, width - 40)
-                keysWidth = width - 40
-                keyHeight = 64
-            } else {
-                dialWidth = min(width * 0.62, 520)
-                keysWidth = min(width * 0.74, 620)
-                keyHeight = 72
-            }
         }
     }
 }

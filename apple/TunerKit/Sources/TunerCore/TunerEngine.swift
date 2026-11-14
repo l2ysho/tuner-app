@@ -1,171 +1,66 @@
-import AVFoundation
-import TunerCore
+import Foundation
 
-struct PipelineConfig: Sendable, Equatable {
-    var strings: [Float]
-    var a4: Float
-    var tolerance: Float
-    var manualString: Int
-    var minHz: Float
-    var gateDb: Float
+public struct PipelineConfig: Sendable, Equatable {
+    public var strings: [Float]
+    public var a4: Float
+    public var tolerance: Float
+    public var manualString: Int
+    public var minHz: Float
+    public var gateDb: Float
+
+    public init(
+        strings: [Float], a4: Float, tolerance: Float, manualString: Int, minHz: Float, gateDb: Float
+    ) {
+        self.strings = strings
+        self.a4 = a4
+        self.tolerance = tolerance
+        self.manualString = manualString
+        self.minHz = minHz
+        self.gateDb = gateDb
+    }
 }
 
-/// Microphone → lock-free ring → analysis queue → `onReading`.
+/// Audio source → lock-free ring → analysis queue → `onReading`.
 ///
-/// Threads: the sink node block runs on the real-time audio thread and only writes into the ring.
-/// Everything else under `queue` (pipeline, timer, demo generator) is confined to that serial queue.
-/// The engine itself is driven from the main actor.
-final class AudioController: @unchecked Sendable {
-    static let hop = 512
+/// Everything under `queue` (pipeline, timer, pumping) is confined to that serial queue.
+/// Sources are started and stopped from the main actor.
+public final class TunerEngine: @unchecked Sendable {
+    public static let hop = 512
 
     private let queue = DispatchQueue(label: "tuner.analysis", qos: .userInteractive)
     private let onReading: @Sendable (TunerReading, UInt64) -> Void
-    private let onMicrophoneLost: @MainActor () -> Void
 
     // Main actor.
-    private var engine = AVAudioEngine()
-    private var sinkNode: AVAudioSinkNode?
-    private var observers: [NSObjectProtocol] = []
+    @MainActor private var source: (any AudioSource)?
     /// Bumped by `stop()`; readings tagged with an older session are stale and must be dropped.
-    @MainActor private(set) var session: UInt64 = 0
+    @MainActor public private(set) var session: UInt64 = 0
 
     // Analysis queue.
     private var analyzer: Analyzer?
     private var config: PipelineConfig?
     private var timer: DispatchSourceTimer?
-    private var demo: DemoGenerator?
+    private var pumped: (any AudioSource)?
     private var lastSent: TunerReading?
     private var sessionTag: UInt64?
 
-    /// `onMicrophoneLost` fires when the running microphone path was torn down by the system
-    /// (route or format change, media services reset) and needs `startMicrophone()` again.
-    @MainActor
-    init(
-        onReading: @escaping @Sendable (TunerReading, UInt64) -> Void,
-        onMicrophoneLost: @escaping @MainActor () -> Void
-    ) {
+    public init(onReading: @escaping @Sendable (TunerReading, UInt64) -> Void) {
         self.onReading = onReading
-        self.onMicrophoneLost = onMicrophoneLost
-        let center = NotificationCenter.default
-        observers = [
-            center.addObserver(forName: .AVAudioEngineConfigurationChange, object: nil, queue: .main) {
-                [weak self] note in
-                let source = note.object.map { ObjectIdentifier($0 as AnyObject) }
-                MainActor.assumeIsolated { self?.engineConfigurationChanged(source: source) }
-            },
-            center.addObserver(
-                forName: AVAudioSession.mediaServicesWereResetNotification, object: nil, queue: .main
-            ) { [weak self] _ in
-                MainActor.assumeIsolated { self?.mediaServicesWereReset() }
-            },
-        ]
-    }
-
-    deinit {
-        for observer in observers { NotificationCenter.default.removeObserver(observer) }
     }
 
     @MainActor
-    private func engineConfigurationChanged(source: ObjectIdentifier?) {
-        // The engine stops itself on a format change; a running engine means we already restarted.
-        guard source == ObjectIdentifier(engine), sinkNode != nil, !engine.isRunning else { return }
-        onMicrophoneLost()
-    }
-
-    @MainActor
-    private func mediaServicesWereReset() {
-        let wasRunning = sinkNode != nil
+    public func start(_ source: any AudioSource) throws {
         stop()
-        // Every audio object from before the reset is orphaned.
-        engine = AVAudioEngine()
-        if wasRunning { onMicrophoneLost() }
-    }
-
-    @MainActor
-    func startMicrophone() throws {
-        stop()
-        let session = AVAudioSession.sharedInstance()
-        // .measurement turns off the input processing (AGC, noise suppression) that skews pitch.
-        try session.setCategory(.record, mode: .measurement)
-        try? session.setPreferredSampleRate(48_000)
-        try? session.setPreferredIOBufferDuration(0.005)
-        try session.setActive(true)
-
-        let input = engine.inputNode
-        let sampleRate = input.inputFormat(forBus: 0).sampleRate
-        guard sampleRate > 0,
-            let mono = AVAudioFormat(standardFormatWithSampleRate: sampleRate, channels: 1)
-        else { throw AudioError.noInput }
-
         let ring = SampleRing(capacity: 1 << 15)
-        let sink = Self.makeSink(writingTo: ring)
-        engine.attach(sink)
-        engine.connect(input, to: sink, format: mono)
-        sinkNode = sink
-        engine.prepare()
-        try engine.start()
-        startAnalysis(ring: ring, sampleRate: sampleRate, demo: nil, session: self.session)
-    }
-
-    /// Must stay nonisolated: a block formed inside a @MainActor method inherits that isolation,
-    /// and Swift 6 traps when the real-time audio thread calls it.
-    private nonisolated static func makeSink(writingTo ring: SampleRing) -> AVAudioSinkNode {
-        AVAudioSinkNode { _, frameCount, bufferList in
-            let buffers = UnsafeMutableAudioBufferListPointer(UnsafeMutablePointer(mutating: bufferList))
-            if let data = buffers.first?.mData {
-                ring.write(data.assumingMemoryBound(to: Float.self), count: Int(frameCount))
-            }
-            return noErr
-        }
-    }
-
-    @MainActor
-    func startDemo(_ signal: DemoSignal) {
-        stop()
-        let sampleRate = 48_000.0
-        startAnalysis(
-            ring: SampleRing(capacity: 1 << 15), sampleRate: sampleRate,
-            demo: DemoGenerator(signal: signal, sampleRate: sampleRate), session: session)
-    }
-
-    @MainActor
-    func stop() {
-        session &+= 1
-        if engine.isRunning { engine.stop() }
-        if let sinkNode {
-            engine.disconnectNodeInput(sinkNode)
-            engine.detach(sinkNode)
-            self.sinkNode = nil
-            try? AVAudioSession.sharedInstance().setActive(false, options: .notifyOthersOnDeactivation)
-        }
-        queue.async { [self] in
-            timer?.cancel()
-            timer = nil
-            analyzer = nil
-            demo = nil
-            lastSent = nil
-            sessionTag = nil
-        }
-    }
-
-    func apply(_ newConfig: PipelineConfig) {
-        queue.async { [self] in
-            let old = config
-            config = newConfig
-            if let pipeline = analyzer?.pipeline {
-                Self.configure(pipeline, from: old, to: newConfig)
-            }
-        }
-    }
-
-    private func startAnalysis(ring: SampleRing, sampleRate: Double, demo: DemoGenerator?, session: UInt64) {
+        let sampleRate = try source.start(into: ring)
+        self.source = source
+        let session = session
         queue.async { [self] in
             sessionTag = session
+            pumped = source
             let pipeline = PitchPipeline(
                 sampleRate: sampleRate, minHz: config?.minHz ?? 50, gateDb: config?.gateDb ?? -50)
             if let config { Self.configure(pipeline, from: nil, to: config) }
             analyzer = Analyzer(ring: ring, pipeline: pipeline, hop: Self.hop)
-            self.demo = demo
 
             let timer = DispatchSource.makeTimerSource(queue: queue)
             timer.schedule(deadline: .now(), repeating: .milliseconds(5), leeway: .milliseconds(1))
@@ -175,9 +70,34 @@ final class AudioController: @unchecked Sendable {
         }
     }
 
+    @MainActor
+    public func stop() {
+        session &+= 1
+        source?.stop()
+        source = nil
+        queue.async { [self] in
+            timer?.cancel()
+            timer = nil
+            analyzer = nil
+            pumped = nil
+            lastSent = nil
+            sessionTag = nil
+        }
+    }
+
+    public func apply(_ newConfig: PipelineConfig) {
+        queue.async { [self] in
+            let old = config
+            config = newConfig
+            if let pipeline = analyzer?.pipeline {
+                Self.configure(pipeline, from: old, to: newConfig)
+            }
+        }
+    }
+
     private func tick() {
         guard let analyzer, let sessionTag else { return }
-        demo?.fill(analyzer.ring)
+        pumped?.pump(into: analyzer.ring)
         guard let reading = analyzer.poll(), reading != lastSent else { return }
         lastSent = reading
         onReading(reading, sessionTag)
@@ -191,9 +111,5 @@ final class AudioController: @unchecked Sendable {
         if old?.manualString != new.manualString || old?.strings != new.strings {
             p.setManualString(new.manualString)
         }
-    }
-
-    enum AudioError: Error {
-        case noInput
     }
 }

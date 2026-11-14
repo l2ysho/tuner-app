@@ -1,12 +1,20 @@
+# Build output and agent artifacts
 build/
+artifacts/
 .cache/
 compile_commands.json
 .DS_Store
 
-# Xcode
+# Xcode: the project is generated from apple/project.yml (`just gen`)
+apple/Tuner.xcodeproj/
 xcuserdata/
 DerivedData/
 *.xcuserstate
+
+# SwiftPM
 .swiftpm/
 .build/
+Package.resolved
+
 .claude/worktrees/
+.claude/settings.local.json
