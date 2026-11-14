@@ -1,0 +1,24 @@
+#!/usr/bin/env bash
+# quiet <label> <command...>: runs the command with its output in build/logs/<label>.log.
+# Prints one line on success; on failure prints only the relevant lines, then exits non-zero.
+set -uo pipefail
+label=$1
+shift
+root=$(cd "$(dirname "$0")/.." && pwd)
+log="$root/build/logs/$label.log"
+mkdir -p "$(dirname "$log")"
+now() { perl -MTime::HiRes=time -e 'printf "%.3f", time'; }
+
+start=$(now)
+if "$@" >"$log" 2>&1; then
+    printf 'ok    %-14s %5.1fs\n' "$label" "$(echo "$(now) - $start" | bc)"
+    exit 0
+fi
+
+printf 'FAIL  %-14s (full log: %s)\n' "$label" "${log#"$root"/}" >&2
+# Keep diagnostics, drop build-system noise such as multi-kilobyte compiler command lines.
+grep -E '(error|warning|FAIL|Failed|failed|✘|\[x\]|REQUIRE|CHECK|with expansion|with message|Expectation|recorded an issue|Snapshot|does not match|^  )' "$log" |
+    grep -vE 'Command line:|^\s*cd /|SwiftDriver|-Xcc|Test Suite .* passed|tests? passed|Start +[0-9]+:|Test +#[0-9]+: .*Passed|^\s*$' |
+    cut -c1-400 | awk '!seen[$0]++' | head -60 >&2
+[ "${PIPESTATUS[0]}" -eq 0 ] || tail -40 "$log" >&2
+exit 1

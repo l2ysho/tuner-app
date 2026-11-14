@@ -1,0 +1,32 @@
+included:
+  - apple
+excluded:
+  - apple/TunerKit/.build
+  - apple/TunerKit/Sources/TunerDSPC
+  - apple/Tuner.xcodeproj
+# swift-format owns layout; SwiftLint checks the rest.
+disabled_rules:
+  - trailing_comma
+  - opening_brace
+  - line_length
+  - closure_parameter_position
+  - vertical_parameter_alignment
+  - statement_position
+  - function_parameter_count
+  - todo
+opt_in_rules:
+  - empty_count
+  - first_where
+  - contains_over_first_not_nil
+  - weak_delegate
+identifier_name:
+  min_length: 1
+  excluded: [id, i, s, p, c, t, v]
+type_name:
+  min_length: 2
+function_body_length:
+  warning: 80
+cyclomatic_complexity:
+  warning: 15
+large_tuple:
+  warning: 4
