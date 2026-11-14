@@ -4,12 +4,12 @@
 <dict>
 	<key>UIAppFonts</key>
 	<array>
-		<string>Fonts/InterTight-Medium.ttf</string>
-		<string>Fonts/InterTight-SemiBold.ttf</string>
-		<string>Fonts/InterTight-Bold.ttf</string>
-		<string>Fonts/IBMPlexMono-Regular.ttf</string>
-		<string>Fonts/IBMPlexMono-Medium.ttf</string>
-		<string>Fonts/IBMPlexMono-SemiBold.ttf</string>
+		<string>InterTight-Medium.ttf</string>
+		<string>InterTight-SemiBold.ttf</string>
+		<string>InterTight-Bold.ttf</string>
+		<string>IBMPlexMono-Regular.ttf</string>
+		<string>IBMPlexMono-Medium.ttf</string>
+		<string>IBMPlexMono-SemiBold.ttf</string>
 	</array>
 </dict>
 </plist>

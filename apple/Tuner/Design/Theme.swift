@@ -75,7 +75,7 @@ enum Typeface {
 
     static func mono(_ size: CGFloat, _ weight: Weight, relativeTo style: Font.TextStyle = .caption) -> Font {
         let name = switch weight {
-        case .regular: "IBMPlexMono"
+        case .regular: "IBMPlexMono-Regular"
         case .medium: "IBMPlexMono-Medium"
         case .semibold, .bold: "IBMPlexMono-SemiBold"
         }

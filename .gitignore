@@ -9,3 +9,4 @@ DerivedData/
 *.xcuserstate
 .swiftpm/
 .build/
+.claude/worktrees/

@@ -9,19 +9,27 @@
 /* Begin PBXBuildFile section */
 		0589969833DA5F101D6C8CF2 /* ControlBar.swift in Sources */ = {isa = PBXBuildFile; fileRef = 069AE6EDC5EF55A932845109 /* ControlBar.swift */; };
 		1C66CED362C096D8448EE96C /* StringKeys.swift in Sources */ = {isa = PBXBuildFile; fileRef = 694710EDB41EDB83ACBA168E /* StringKeys.swift */; };
+		28093B851872E08AFC3CB098 /* OFL-InterTight.txt in Resources */ = {isa = PBXBuildFile; fileRef = 65AA9DF06EE37FDDF4053D18 /* OFL-InterTight.txt */; };
+		2E87B7F99101802313A27936 /* OFL-IBMPlexMono.txt in Resources */ = {isa = PBXBuildFile; fileRef = 4F6FAA8AF18DDDC1DA76A474 /* OFL-IBMPlexMono.txt */; };
 		38256CA691B34D73A703B691 /* TuningPickerSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9C59471C9B146840F43059F6 /* TuningPickerSheet.swift */; };
+		52E4CDAB0BF565F1050CEFA3 /* IBMPlexMono-Medium.ttf in Resources */ = {isa = PBXBuildFile; fileRef = A25B8B229BF5BEA05593CEDE /* IBMPlexMono-Medium.ttf */; };
+		549A0418DD9DD152E79611FC /* InterTight-Medium.ttf in Resources */ = {isa = PBXBuildFile; fileRef = 8028FADAD94CD92E458A43D2 /* InterTight-Medium.ttf */; };
 		586089C2866A1361A2A9BF3D /* TunerModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9EEE8AB40B2D0B19D06ABC0A /* TunerModel.swift */; };
 		7C20470C3A381267B85DD1DE /* TunerDisplay.swift in Sources */ = {isa = PBXBuildFile; fileRef = F84052F9AEF89A6CA3515B43 /* TunerDisplay.swift */; };
 		88F150B1050663C0F6840D1E /* Theme.swift in Sources */ = {isa = PBXBuildFile; fileRef = 602E1E46877FAFFE450CAD27 /* Theme.swift */; };
 		90E41045A3A719F2BD63A468 /* MicrophoneScreen.swift in Sources */ = {isa = PBXBuildFile; fileRef = B6BD3B187C745D438327A237 /* MicrophoneScreen.swift */; };
 		AF0A3C7335384B0C5FE73950 /* AudioController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6E1294F9250154B031C97D2C /* AudioController.swift */; };
+		B73DDB0009069CCDFA0AD831 /* IBMPlexMono-SemiBold.ttf in Resources */ = {isa = PBXBuildFile; fileRef = 01DA3622210E1CE006868A19 /* IBMPlexMono-SemiBold.ttf */; };
 		C430886FB0FDA84F278FDABE /* TunerScreen.swift in Sources */ = {isa = PBXBuildFile; fileRef = EE483379ECEED033ADC46FA5 /* TunerScreen.swift */; };
+		C674C24826DAE278F1D48809 /* InterTight-Bold.ttf in Resources */ = {isa = PBXBuildFile; fileRef = 194FBF893BF1A9D0DBC2D529 /* InterTight-Bold.ttf */; };
 		D9FACAB45D0EE5408F9932E6 /* TunerApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = D957FD4530387BB10373FFC8 /* TunerApp.swift */; };
 		DC9DD0CC314BE54737608192 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 97EC35051D44F87E0B052EB6 /* Assets.xcassets */; };
 		E2C25FE07B8B83A4CC6A99CA /* TunerCore in Frameworks */ = {isa = PBXBuildFile; productRef = 0401242D4CE5848EB3E84B43 /* TunerCore */; };
 		E8D8A34583F93487C7E19075 /* TunerDisplayTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = AB4467604937B3ABB57F40BE /* TunerDisplayTests.swift */; };
+		F2948B05A7E856BD5CC2FE8D /* IBMPlexMono-Regular.ttf in Resources */ = {isa = PBXBuildFile; fileRef = AD95EFB72A4697D4F06C07EF /* IBMPlexMono-Regular.ttf */; };
 		F6F0626A0B374E627F40233E /* DialView.swift in Sources */ = {isa = PBXBuildFile; fileRef = C5751F49372B1762C9512C23 /* DialView.swift */; };
 		F6FE3875F4A79A7F5E2D8006 /* SettingsSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6998E7B4C3550AECAA2CE60C /* SettingsSheet.swift */; };
+		FD250356A8B52E631CB961A6 /* InterTight-SemiBold.ttf in Resources */ = {isa = PBXBuildFile; fileRef = B5A30D20C292343C2E08C8CE /* InterTight-SemiBold.ttf */; };
 		FE0733E9729B4F446A25F818 /* DemoSource.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6063740722A1F0E65A197A85 /* DemoSource.swift */; };
 /* End PBXBuildFile section */
 
@@ -36,18 +44,26 @@
 /* End PBXContainerItemProxy section */
 
 /* Begin PBXFileReference section */
+		01DA3622210E1CE006868A19 /* IBMPlexMono-SemiBold.ttf */ = {isa = PBXFileReference; lastKnownFileType = file; path = "IBMPlexMono-SemiBold.ttf"; sourceTree = "<group>"; };
 		069AE6EDC5EF55A932845109 /* ControlBar.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ControlBar.swift; sourceTree = "<group>"; };
+		194FBF893BF1A9D0DBC2D529 /* InterTight-Bold.ttf */ = {isa = PBXFileReference; lastKnownFileType = file; path = "InterTight-Bold.ttf"; sourceTree = "<group>"; };
 		217E1755507D496A90E39CB4 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = Info.plist; sourceTree = "<group>"; };
+		4F6FAA8AF18DDDC1DA76A474 /* OFL-IBMPlexMono.txt */ = {isa = PBXFileReference; lastKnownFileType = text; path = "OFL-IBMPlexMono.txt"; sourceTree = "<group>"; };
 		602E1E46877FAFFE450CAD27 /* Theme.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Theme.swift; sourceTree = "<group>"; };
 		6063740722A1F0E65A197A85 /* DemoSource.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DemoSource.swift; sourceTree = "<group>"; };
+		65AA9DF06EE37FDDF4053D18 /* OFL-InterTight.txt */ = {isa = PBXFileReference; lastKnownFileType = text; path = "OFL-InterTight.txt"; sourceTree = "<group>"; };
 		694710EDB41EDB83ACBA168E /* StringKeys.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StringKeys.swift; sourceTree = "<group>"; };
 		6998E7B4C3550AECAA2CE60C /* SettingsSheet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsSheet.swift; sourceTree = "<group>"; };
 		6E1294F9250154B031C97D2C /* AudioController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AudioController.swift; sourceTree = "<group>"; };
+		8028FADAD94CD92E458A43D2 /* InterTight-Medium.ttf */ = {isa = PBXFileReference; lastKnownFileType = file; path = "InterTight-Medium.ttf"; sourceTree = "<group>"; };
 		97EC35051D44F87E0B052EB6 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 		9C59471C9B146840F43059F6 /* TuningPickerSheet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TuningPickerSheet.swift; sourceTree = "<group>"; };
 		9DF7D4BE2B4DDC1D459C2F25 /* TunerCore */ = {isa = PBXFileReference; lastKnownFileType = folder; name = TunerCore; path = TunerCore; sourceTree = SOURCE_ROOT; };
 		9EEE8AB40B2D0B19D06ABC0A /* TunerModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TunerModel.swift; sourceTree = "<group>"; };
+		A25B8B229BF5BEA05593CEDE /* IBMPlexMono-Medium.ttf */ = {isa = PBXFileReference; lastKnownFileType = file; path = "IBMPlexMono-Medium.ttf"; sourceTree = "<group>"; };
 		AB4467604937B3ABB57F40BE /* TunerDisplayTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TunerDisplayTests.swift; sourceTree = "<group>"; };
+		AD95EFB72A4697D4F06C07EF /* IBMPlexMono-Regular.ttf */ = {isa = PBXFileReference; lastKnownFileType = file; path = "IBMPlexMono-Regular.ttf"; sourceTree = "<group>"; };
+		B5A30D20C292343C2E08C8CE /* InterTight-SemiBold.ttf */ = {isa = PBXFileReference; lastKnownFileType = file; path = "InterTight-SemiBold.ttf"; sourceTree = "<group>"; };
 		B6BD3B187C745D438327A237 /* MicrophoneScreen.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MicrophoneScreen.swift; sourceTree = "<group>"; };
 		C5751F49372B1762C9512C23 /* DialView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DialView.swift; sourceTree = "<group>"; };
 		CBCEC996968A56A035B27F7D /* TunerTests.xctest */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.cfbundle; path = TunerTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
@@ -118,6 +134,7 @@
 				D957FD4530387BB10373FFC8 /* TunerApp.swift */,
 				DE02A5669F8FD24BA39844EC /* Audio */,
 				EA17B9F03689470BA3CCCC31 /* Design */,
+				6898FE20C3C0B0E2B7A4EC86 /* Fonts */,
 				65B56AF24A9FEB3A8298E077 /* Model */,
 				5B61DBCB8812AB1C13EB9973 /* Views */,
 			);
@@ -131,6 +148,21 @@
 				9EEE8AB40B2D0B19D06ABC0A /* TunerModel.swift */,
 			);
 			path = Model;
+			sourceTree = "<group>";
+		};
+		6898FE20C3C0B0E2B7A4EC86 /* Fonts */ = {
+			isa = PBXGroup;
+			children = (
+				A25B8B229BF5BEA05593CEDE /* IBMPlexMono-Medium.ttf */,
+				AD95EFB72A4697D4F06C07EF /* IBMPlexMono-Regular.ttf */,
+				01DA3622210E1CE006868A19 /* IBMPlexMono-SemiBold.ttf */,
+				194FBF893BF1A9D0DBC2D529 /* InterTight-Bold.ttf */,
+				8028FADAD94CD92E458A43D2 /* InterTight-Medium.ttf */,
+				B5A30D20C292343C2E08C8CE /* InterTight-SemiBold.ttf */,
+				4F6FAA8AF18DDDC1DA76A474 /* OFL-IBMPlexMono.txt */,
+				65AA9DF06EE37FDDF4053D18 /* OFL-InterTight.txt */,
+			);
+			path = Fonts;
 			sourceTree = "<group>";
 		};
 		DE02A5669F8FD24BA39844EC /* Audio */ = {
@@ -209,10 +241,12 @@
 				LastUpgradeCheck = 1430;
 				TargetAttributes = {
 					164B8DD1DA5477ED2944F943 = {
-						DevelopmentTeam = "";
+						DevelopmentTeam = 5RU7BRARKN;
+						ProvisioningStyle = Automatic;
 					};
 					74E6ADC4296B86469DBD69A9 = {
-						DevelopmentTeam = "";
+						DevelopmentTeam = 5RU7BRARKN;
+						ProvisioningStyle = Automatic;
 					};
 				};
 			};
@@ -245,6 +279,14 @@
 			buildActionMask = 2147483647;
 			files = (
 				DC9DD0CC314BE54737608192 /* Assets.xcassets in Resources */,
+				52E4CDAB0BF565F1050CEFA3 /* IBMPlexMono-Medium.ttf in Resources */,
+				F2948B05A7E856BD5CC2FE8D /* IBMPlexMono-Regular.ttf in Resources */,
+				B73DDB0009069CCDFA0AD831 /* IBMPlexMono-SemiBold.ttf in Resources */,
+				C674C24826DAE278F1D48809 /* InterTight-Bold.ttf in Resources */,
+				549A0418DD9DD152E79611FC /* InterTight-Medium.ttf in Resources */,
+				FD250356A8B52E631CB961A6 /* InterTight-SemiBold.ttf in Resources */,
+				2E87B7F99101802313A27936 /* OFL-IBMPlexMono.txt in Resources */,
+				28093B851872E08AFC3CB098 /* OFL-InterTight.txt in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -300,7 +342,7 @@
 					"@executable_path/Frameworks",
 					"@loader_path/Frameworks",
 				);
-				PRODUCT_BUNDLE_IDENTIFIER = com.example.tuner.tests;
+				PRODUCT_BUNDLE_IDENTIFIER = "$(APP_BUNDLE_ID).tests";
 				SDKROOT = iphoneos;
 				TARGETED_DEVICE_FAMILY = "1,2";
 				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/Tuner.app/Tuner";
@@ -311,7 +353,8 @@
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				ALWAYS_SEARCH_USER_PATHS = NO;
-				APP_DISPLAY_NAME = Tuner;
+				APP_BUNDLE_ID = sk.riviatech.freetuner;
+				APP_DISPLAY_NAME = Freetuner;
 				CLANG_ANALYZER_NONNULL = YES;
 				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
 				CLANG_CXX_LANGUAGE_STANDARD = "c++20";
@@ -341,10 +384,11 @@
 				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
 				CLANG_WARN_UNREACHABLE_CODE = YES;
 				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
+				CODE_SIGN_STYLE = Automatic;
 				COPY_PHASE_STRIP = NO;
 				CURRENT_PROJECT_VERSION = 1;
 				DEBUG_INFORMATION_FORMAT = dwarf;
-				DEVELOPMENT_TEAM = "";
+				DEVELOPMENT_TEAM = 5RU7BRARKN;
 				ENABLE_STRICT_OBJC_MSGSEND = YES;
 				ENABLE_TESTABILITY = YES;
 				GCC_C_LANGUAGE_STANDARD = gnu11;
@@ -379,7 +423,8 @@
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				ALWAYS_SEARCH_USER_PATHS = NO;
-				APP_DISPLAY_NAME = Tuner;
+				APP_BUNDLE_ID = sk.riviatech.freetuner;
+				APP_DISPLAY_NAME = Freetuner;
 				CLANG_ANALYZER_NONNULL = YES;
 				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
 				CLANG_CXX_LANGUAGE_STANDARD = "c++20";
@@ -409,10 +454,11 @@
 				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
 				CLANG_WARN_UNREACHABLE_CODE = YES;
 				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
+				CODE_SIGN_STYLE = Automatic;
 				COPY_PHASE_STRIP = NO;
 				CURRENT_PROJECT_VERSION = 1;
 				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
-				DEVELOPMENT_TEAM = "";
+				DEVELOPMENT_TEAM = 5RU7BRARKN;
 				ENABLE_NS_ASSERTIONS = NO;
 				ENABLE_STRICT_OBJC_MSGSEND = YES;
 				GCC_C_LANGUAGE_STANDARD = gnu11;
@@ -445,6 +491,8 @@
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = Tuner/Info.plist;
 				INFOPLIST_KEY_CFBundleDisplayName = "$(APP_DISPLAY_NAME)";
+				INFOPLIST_KEY_ITSAppUsesNonExemptEncryption = NO;
+				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.music";
 				INFOPLIST_KEY_NSMicrophoneUsageDescription = "The tuner listens to find the note you play. Nothing is recorded or sent.";
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
 				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
@@ -455,7 +503,7 @@
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
-				PRODUCT_BUNDLE_IDENTIFIER = com.example.tuner;
+				PRODUCT_BUNDLE_IDENTIFIER = "$(APP_BUNDLE_ID)";
 				SDKROOT = iphoneos;
 				TARGETED_DEVICE_FAMILY = "1,2";
 			};
@@ -470,6 +518,8 @@
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = Tuner/Info.plist;
 				INFOPLIST_KEY_CFBundleDisplayName = "$(APP_DISPLAY_NAME)";
+				INFOPLIST_KEY_ITSAppUsesNonExemptEncryption = NO;
+				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.music";
 				INFOPLIST_KEY_NSMicrophoneUsageDescription = "The tuner listens to find the note you play. Nothing is recorded or sent.";
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
 				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
@@ -480,7 +530,7 @@
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
-				PRODUCT_BUNDLE_IDENTIFIER = com.example.tuner;
+				PRODUCT_BUNDLE_IDENTIFIER = "$(APP_BUNDLE_ID)";
 				SDKROOT = iphoneos;
 				TARGETED_DEVICE_FAMILY = "1,2";
 			};
@@ -496,7 +546,7 @@
 					"@executable_path/Frameworks",
 					"@loader_path/Frameworks",
 				);
-				PRODUCT_BUNDLE_IDENTIFIER = com.example.tuner.tests;
+				PRODUCT_BUNDLE_IDENTIFIER = "$(APP_BUNDLE_ID).tests";
 				SDKROOT = iphoneos;
 				TARGETED_DEVICE_FAMILY = "1,2";
 				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/Tuner.app/Tuner";

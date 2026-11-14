@@ -1,6 +1,6 @@
 # Guitar Tuner — project handoff
 
-> Working name: **tuner** (final app name not chosen yet — keep the name in one place so a rename is cheap).
+> App name: **Freetuner** (set once, in `APP_DISPLAY_NAME` in `apple/project.yml`; code and repo still say "tuner"). Bundle ID `sk.riviatech.freetuner`.
 > Owner: Richard (senior full-stack dev, new to native iOS — explain Swift/Xcode specifics briefly when they matter).
 > Design canvas (source of truth for UI): https://claude.ai/artifact/Vp4Bv4bNyARAeXGfT2cEz4 → page **"Final — main screen"**.
 
@@ -154,7 +154,7 @@ Dial ≈ 62 % of screen width (max 520 pt); keys + toolbar ≈ 74 % (max 620 pt)
 - Every DSP change comes with a test; keep the bench CSV output stable so runs can be diffed.
 
 ## 7. Open questions
-- Final app name (candidate: **Peg**; "Tunr", "Tune", "OpenTuner", "Overtone", "Tine", "Unison" are taken).
+- App Store name: "Freetuner" is free as an exact name, but a tuner called "Freetune" exists and the name is generic. Have a fallback ready if App Review rejects it (shortlist: Beatless, Plumb, Zeroed, Unfret).
 - App icon: three concepts on the canvas (A · Dial, B · Meter on ink, C · Orange knob) — not chosen.
 - Real string recordings for `fixtures/` — pending.
 - iPhone Duo point sizes are estimates (474×696 closed, 904×640 open) — confirm in the simulator.

@@ -55,8 +55,7 @@ Debug builds accept `-demo <flat|sharp|intune|idle|sweep>` as a launch argument:
 
 ### Fonts
 
-The design uses Inter Tight and IBM Plex Mono (both OFL). They are not in the repo yet; without them the app falls back to SF Pro / SF Mono. To bundle them, put these files in `apple/Tuner/Fonts/` and regenerate the project:
-`InterTight-{Medium,SemiBold,Bold}.ttf`, `IBMPlexMono-{Regular,Medium,SemiBold}.ttf`.
+`apple/Tuner/Fonts/` bundles Inter Tight and IBM Plex Mono (both OFL, licences next to the files). Plex Mono is the static release from the Google Fonts repo. Inter Tight ships only as a variable font there, so the Medium, SemiBold and Bold files are static instances made with `fonttools varLib.instancer --update-name-table`. If a font is missing, the app falls back to SF Pro / SF Mono.
 
 ## Format
 

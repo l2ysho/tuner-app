@@ -7,14 +7,16 @@ options:
 settings:
   base:
     # The app name lives here only; rename the app by changing this line.
-    APP_DISPLAY_NAME: Tuner
+    APP_DISPLAY_NAME: Freetuner
     MARKETING_VERSION: "0.1.0"
     CURRENT_PROJECT_VERSION: "1"
     SWIFT_VERSION: "6.0"
     # TunerCore wraps C++; every Swift module that imports it builds with C++ interop.
     SWIFT_OBJC_INTEROP_MODE: objcxx
     CLANG_CXX_LANGUAGE_STANDARD: c++20
-    DEVELOPMENT_TEAM: ""
+    APP_BUNDLE_ID: sk.riviatech.freetuner
+    DEVELOPMENT_TEAM: 5RU7BRARKN
+    CODE_SIGN_STYLE: Automatic
 packages:
   TunerCore:
     path: TunerCore
@@ -28,7 +30,7 @@ targets:
       - package: TunerCore
     settings:
       base:
-        PRODUCT_BUNDLE_IDENTIFIER: com.example.tuner
+        PRODUCT_BUNDLE_IDENTIFIER: $(APP_BUNDLE_ID)
         TARGETED_DEVICE_FAMILY: "1,2"
         GENERATE_INFOPLIST_FILE: YES
         INFOPLIST_FILE: Tuner/Info.plist
@@ -39,6 +41,8 @@ targets:
         INFOPLIST_KEY_UISupportedInterfaceOrientations_iPhone: UIInterfaceOrientationPortrait
         INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad: "UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight"
         INFOPLIST_KEY_UIUserInterfaceStyle: Light
+        INFOPLIST_KEY_ITSAppUsesNonExemptEncryption: NO
+        INFOPLIST_KEY_LSApplicationCategoryType: public.app-category.music
         ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon
         ENABLE_PREVIEWS: YES
   TunerTests:
@@ -51,7 +55,7 @@ targets:
     settings:
       base:
         GENERATE_INFOPLIST_FILE: YES
-        PRODUCT_BUNDLE_IDENTIFIER: com.example.tuner.tests
+        PRODUCT_BUNDLE_IDENTIFIER: $(APP_BUNDLE_ID).tests
 schemes:
   Tuner:
     build:
