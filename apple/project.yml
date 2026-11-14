@@ -9,7 +9,7 @@ settings:
     # The app name lives here only; rename the app by changing this line.
     APP_DISPLAY_NAME: Freetuner
     MARKETING_VERSION: "0.1.0"
-    CURRENT_PROJECT_VERSION: "2"
+    CURRENT_PROJECT_VERSION: "3"
     SWIFT_VERSION: "6.0"
     # TunerCore wraps C++; every Swift module that imports it builds with C++ interop.
     SWIFT_OBJC_INTEROP_MODE: objcxx

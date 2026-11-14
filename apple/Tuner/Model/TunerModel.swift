@@ -57,7 +57,10 @@ final class TunerModel {
 
     // MARK: Runtime state
 
+    /// Only reassigned when the screen would change: the analyzer delivers ~94 readings a second,
+    /// and every observed write re-renders the tuner screen and its sheets, which cancels taps.
     private(set) var reading = TunerReading.idle
+    @ObservationIgnored private var latest = TunerReading.idle
     private(set) var manualString: Int?
     private(set) var tunedStrings: Set<Int> = []
     /// Increments once per lock; drives the haptic.
@@ -166,7 +169,7 @@ final class TunerModel {
     func sceneLeftActive() {
         isActive = false
         audio.stop()
-        reading = .idle
+        resetReading()
         updateIdleTimer()
     }
 
@@ -175,7 +178,7 @@ final class TunerModel {
             startAudio()
         } else {
             audio.stop()
-            reading = .idle
+            resetReading()
         }
     }
 
@@ -196,17 +199,25 @@ final class TunerModel {
     }
 
     private func microphoneLost() {
-        reading = .idle
+        resetReading()
         if isActive { startAudio() }
+    }
+
+    private func resetReading() {
+        latest = .idle
+        reading = .idle
     }
 
     private func receive(_ new: TunerReading, session: UInt64) {
         guard session == audio.session else { return }
-        if new.locked, !reading.locked {
+        if new.locked, !latest.locked {
             lockCount += 1
             if new.stringIndex >= 0 { tunedStrings.insert(new.stringIndex) }
         }
-        reading = new
+        latest = new
+        let next = TunerDisplay(
+            reading: new, tuning: tuning, accidentals: accidentals, manualString: manualString)
+        if next != display { reading = new }
     }
 
     private func refreshMicAccess() {
