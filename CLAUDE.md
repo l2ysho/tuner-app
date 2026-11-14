@@ -4,6 +4,24 @@
 > Owner: Richard (senior full-stack dev, new to native iOS — explain Swift/Xcode specifics briefly when they matter).
 > Design canvas (source of truth for UI): https://claude.ai/artifact/Vp4Bv4bNyARAeXGfT2cEz4 → page **"Final — main screen"**.
 
+## 0. Dev loop (read first)
+
+- After every change run the fastest relevant check: `just test-dsp` (C++ core, ~5 s) or `just test-core` (Swift core, ~2 s). UI changes: `just test-app`.
+- Run `just check` before saying a task is done. Never report done with red checks.
+- Output is quiet: one `ok` line per step; on failure only the relevant lines plus the log path (`build/logs/<step>.log`).
+- A PostToolUse hook (`.claude/hooks/post-edit.sh`) formats and lints each file you edit. Exit 2 = fix what it printed.
+- See the UI: `just screenshot state=flat` (flat | sharp | intune | idle | sweep | live), then read `artifacts/screen.png`.
+- Snapshot failures write diffs to `artifacts/snapshots/`; open the PNGs. Re-record with `just record-snapshots` and look at every new image before committing it.
+- Xcode MCP (`.mcp.json`, `xcrun mcpbridge`) needs Xcode running with the project open and MCP enabled in Xcode → Settings → Intelligence.
+- TestFlight: bump `CURRENT_PROJECT_VERSION` in `apple/project.yml`, then `just upload`.
+
+Rules:
+- No logic in `apple/Tuner/` (app target): wiring only.
+- No AVFoundation outside `TunerAudio` (the AUv3 extension excepted).
+- Audio render path (sink block, `tdsp_*_process/push`): no allocation, no locks, no Objective-C messaging, no main-actor isolation.
+- Never hand-edit `.pbxproj`; it is generated and not committed. Change `apple/project.yml`, run `just gen`.
+- DSP changes need a golden test. UI changes need an updated snapshot that you have looked at.
+
 ## 1. What we are building
 
 A clean, ad-free guitar tuner for iPhone and iPad (iOS 26+, Liquid Glass), later iPhone Duo (foldable), Mac, an AUv3 plugin and Android.
@@ -16,25 +34,31 @@ A clean, ad-free guitar tuner for iPhone and iPad (iOS 26+, Liquid Glass), later
 
 ```
 repo/
-├── CLAUDE.md
-├── core/                     # C++20 DSP library — platform-independent, no allocations in the audio path
-│   ├── include/tuner/        # public headers
-│   ├── src/
-│   ├── tests/                # Catch2 unit tests + synthetic signal generator
-│   ├── tools/bench/          # CLI: run detector over WAV/synthetic input, print CSV
-│   └── CMakeLists.txt
+├── CLAUDE.md  justfile  .clang-format .clang-tidy .swift-format .swiftlint.yml
+├── core/                     # C++20 DSP library, CMake, zero Apple dependencies (also the Android/JNI entry)
+│   ├── include/tuner/ src/   # MPM + YIN detectors, Tuner state machine
+│   ├── capi/                 # tuner_dsp_c.h: the C ABI Swift and JNI use
+│   ├── tests/                # Catch2 + synthetic signals; golden, timing, no-allocation tests
+│   └── tools/bench/          # CLI: detector over WAV/synthetic input, CSV out
 ├── apple/
-│   ├── Tuner.xcodeproj       # iOS/iPadOS app target (AUv3 + macOS targets later)
-│   ├── Tuner/                # SwiftUI app
-│   └── TunerCore/            # Swift Package wrapping core/ (C++ interop, cxxLanguageStandard .cxx20)
-├── fixtures/                 # WAV recordings (git LFS) — real strings, clean + distorted
-└── .github/workflows/ci.yml
+│   ├── project.yml           # XcodeGen manifest, the only source of the Xcode project
+│   ├── Tuner/                # app target: @main + wiring, assets
+│   ├── AudioUnit/            # AUv3 extension (pass-through placeholder)
+│   ├── SnapshotTests/        # swift-snapshot-testing, reference PNGs in __Snapshots__
+│   └── TunerKit/             # SwiftPM package with almost all Swift code
+│       ├── Sources/TunerDSPC # C target: core/ sources via symlinks, exposes only the C header
+│       ├── Sources/TunerCore # tunings, note math, TunerDisplay, AudioSource, TunerEngine (Linux-safe)
+│       ├── Sources/TunerUI   # SwiftUI views, TunerModel, bundled fonts (no AVFoundation)
+│       └── Sources/TunerAudio# MicrophoneSource (AVAudioEngine), permission
+├── fixtures/                 # WAV recordings `<note>_<desc>.wav` (git LFS); tests skip while empty
+└── .github/workflows/ci.yml  # Linux: test-dsp + test-core. macOS: just check
 ```
 
-- **DSP lives in C++** (`core/`), so it can be reused by the iOS app, the AUv3 extension and Android (JNI) later.
-- Swift calls C++ directly via **Swift/C++ interop** (Swift 5.9+), no Objective-C++ bridge.
-- `core/` must build and test **without Xcode** (CMake), so CI runs it on Linux/macOS.
-- Audio capture is platform code: `AVAudioEngine` input tap on iOS → lock-free ring buffer → core.
+Dependency direction: core ← TunerDSPC ← TunerCore ← TunerUI / TunerAudio ← App, AUv3.
+
+- Swift reaches C++ only through the **C ABI** (`core/capi`), not C++ interop mode, so no Swift target needs interop flags and JNI can use the same surface.
+- `core/` builds and tests without Xcode (CMake). `TUNERKIT_CORE_ONLY=1 swift test` builds only the platform-independent targets (macOS and Linux).
+- Audio: `AudioSource` (protocol in TunerCore) writes into a lock-free `SampleRing`; `TunerEngine` analyses it on a serial queue every 512 samples. `MicrophoneSource` is the real input; `SyntheticSource` drives demo mode and tests.
 
 ## 3. DSP spec (`core/`)
 
@@ -149,7 +173,7 @@ Dial ≈ 62 % of screen width (max 520 pt); keys + toolbar ≈ 74 % (max 620 pt)
 
 ## 6. Conventions
 - C++20, `-Wall -Wextra -Werror`, clang-format (LLVM base, 4-space indent). No exceptions or allocation in `process()`.
-- Swift: SwiftUI + Swift Concurrency, no third-party UI libraries. SwiftLint optional.
+- Swift 6 language mode, strict concurrency, warnings are errors. swift-format + SwiftLint (`just fmt`, `just lint`). No third-party UI libraries.
 - Small PRs, conventional commits (`feat:`, `fix:`, `test:`, `chore:`).
 - Every DSP change comes with a test; keep the bench CSV output stable so runs can be diffed.
 

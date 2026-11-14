@@ -2,25 +2,28 @@
 
 A clean, ad-free guitar tuner for iPhone and iPad. No ads, no account, no tracking. Audio is analysed on device and never recorded or sent.
 
-## Layout
+## Setup
 
-| Path | Contents |
-|---|---|
-| `core/` | C++20 DSP library (pitch detection, tuner state machine), CMake + Catch2 |
-| `apple/` | SwiftUI app (`Tuner/`), `TunerCore` Swift package wrapping `core/` via Swift/C++ interop |
-| `fixtures/` | WAV recordings for tests, stored with Git LFS |
-
-## Build and test the core
-
-Needs CMake ≥ 3.25, a C++20 compiler and (optionally) Ninja.
+macOS with Xcode 26+ (iOS 26 SDK), then:
 
 ```bash
-cmake -S core -B build -G Ninja -DCMAKE_BUILD_TYPE=Release
-cmake --build build
-ctest --test-dir build --output-on-failure
+brew install just xcodegen swiftlint xcbeautify llvm cmake ninja
 ```
 
-Catch2 is fetched at configure time unless an installed Catch2 3.x is found.
+## Commands
+
+| Command | What it does |
+|---|---|
+| `just check` | lint → test-dsp → test-core → build-app → test-app, stops at the first failure |
+| `just test-dsp` | C++ core with ASan/UBSan: golden, C API, timing, no-allocation tests |
+| `just test-core` | Swift core (`TunerDSPC` + `TunerCore`), also on Linux |
+| `just test-app` | snapshot tests on the simulator; diffs in `artifacts/snapshots/` |
+| `just lint` / `just fmt` | swift-format, SwiftLint, clang-format, clang-tidy |
+| `just gen` | generate `apple/Tuner.xcodeproj` from `apple/project.yml` (not committed) |
+| `just screenshot state=flat` | run the app in the simulator, save `artifacts/screen.png` |
+| `just upload` | signed App Store build to TestFlight |
+
+Layout and rules: see `CLAUDE.md`.
 
 ## Bench
 
@@ -35,30 +38,14 @@ Synth inputs: `synth:<sine|saw|missing|pluck|white|pink>:<hz>:<seconds>`.
 
 ## iOS app
 
-Needs Xcode 26+ (iOS 26 SDK). The Xcode project is generated from `apple/project.yml` with [XcodeGen](https://github.com/yonaskolb/XcodeGen); regenerate after adding or removing files:
-
-```bash
-cd apple && xcodegen generate
-```
-
-```bash
-swift test --package-path apple/TunerCore
-```
-
-```bash
-xcodebuild test -project apple/Tuner.xcodeproj -scheme Tuner -destination 'platform=iOS Simulator,name=iPhone 17 Pro'
-```
-
-`apple/TunerCore/Sources/TunerCoreCxx/{src,include/tuner}` are symlinks into `core/`, so the C++ lives in one place.
-
-Debug builds accept `-demo <flat|sharp|intune|idle|sweep>` as a launch argument: a synthetic tone replaces the microphone (useful in the simulator and for screenshots).
+Debug builds accept `-demo <flat|sharp|intune|idle|sweep>` as a launch argument: a synthetic tone replaces the microphone.
 
 ### Fonts
 
-`apple/Tuner/Fonts/` bundles Inter Tight and IBM Plex Mono (both OFL, licences next to the files). Plex Mono is the static release from the Google Fonts repo. Inter Tight ships only as a variable font there, so the Medium, SemiBold and Bold files are static instances made with `fonttools varLib.instancer --update-name-table`. If a font is missing, the app falls back to SF Pro / SF Mono.
+`apple/TunerKit/Sources/TunerUI/Resources/Fonts/` bundles Inter Tight and IBM Plex Mono (both OFL, licences next to the files). Plex Mono is the static release from the Google Fonts repo. Inter Tight ships only as a variable font there, so the Medium, SemiBold and Bold files are static instances made with `fonttools varLib.instancer --update-name-table`. TunerUI registers them at runtime, so previews and snapshot tests use them too. If a font is missing, the UI falls back to SF Pro / SF Mono.
 
 ## Format
 
 ```bash
-clang-format -i $(git ls-files 'core/*.cpp' 'core/*.hpp')
+just fmt
 ```

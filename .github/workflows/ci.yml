@@ -10,55 +10,56 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  core:
-    name: core (${{ matrix.os }})
-    runs-on: ${{ matrix.os }}
-    strategy:
-      fail-fast: false
-      matrix:
-        os: [macos-latest, ubuntu-latest]
-    steps:
-      - uses: actions/checkout@v4
-
-      - name: Install Ninja (Linux)
-        if: runner.os == 'Linux'
-        run: sudo apt-get update && sudo apt-get install -y ninja-build
-
-      - name: Install Ninja (macOS)
-        if: runner.os == 'macOS'
-        run: brew install ninja
-
-      - name: Configure
-        run: cmake -S core -B build -G Ninja -DCMAKE_BUILD_TYPE=Release
-
-      - name: Build
-        run: cmake --build build
-
-      - name: Test
-        run: ctest --test-dir build --output-on-failure
-
-  format:
+  linux:
+    name: core (Linux)
     runs-on: ubuntu-latest
+    container: swift:6.2-noble
+    env:
+      CC: clang
+      CXX: clang++
     steps:
       - uses: actions/checkout@v4
-      - name: Check clang-format
-        run: git ls-files -z 'core/*.cpp' 'core/*.hpp' | xargs -0 clang-format --dry-run --Werror
+
+      - name: Install tools
+        run: apt-get update && apt-get install -y --no-install-recommends cmake ninja-build just jq bc
+
+      - uses: actions/cache@v4
+        with:
+          path: |
+            build/dsp-asan
+            apple/TunerKit/.build
+          key: linux-${{ hashFiles('core/**', 'apple/TunerKit/**') }}
+          restore-keys: linux-
+
+      - run: just test-dsp
+      - run: just test-core
 
   apple:
+    name: just check (macOS)
     runs-on: macos-26
     steps:
       - uses: actions/checkout@v4
 
-      - name: Xcode version
-        run: xcodebuild -version
+      - name: Install tools
+        run: brew install just xcodegen swiftlint xcbeautify llvm ninja
 
-      - name: TunerCore package tests
-        run: swift test --package-path apple/TunerCore
+      - uses: actions/cache@v4
+        with:
+          path: |
+            build/dsp-asan
+            build/xcode/SourcePackages
+            apple/TunerKit/.build
+          key: macos-${{ hashFiles('core/**', 'apple/TunerKit/Package.swift', 'apple/project.yml') }}
+          restore-keys: macos-
 
-      - name: Build iOS app
-        run: >
-          xcodebuild build
-          -project apple/Tuner.xcodeproj
-          -scheme Tuner
-          -destination 'generic/platform=iOS Simulator'
-          CODE_SIGNING_ALLOWED=NO
+      - run: xcodebuild -version
+      - run: just check
+
+      - name: Upload failure artifacts
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: logs-and-snapshot-diffs
+          path: |
+            build/logs
+            artifacts
