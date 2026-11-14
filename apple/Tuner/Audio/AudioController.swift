@@ -98,19 +98,25 @@ final class AudioController: @unchecked Sendable {
         else { throw AudioError.noInput }
 
         let ring = SampleRing(capacity: 1 << 15)
-        let sink = AVAudioSinkNode { _, frameCount, bufferList in
-            let buffers = UnsafeMutableAudioBufferListPointer(UnsafeMutablePointer(mutating: bufferList))
-            if let data = buffers.first?.mData {
-                ring.write(data.assumingMemoryBound(to: Float.self), count: Int(frameCount))
-            }
-            return noErr
-        }
+        let sink = Self.makeSink(writingTo: ring)
         engine.attach(sink)
         engine.connect(input, to: sink, format: mono)
         sinkNode = sink
         engine.prepare()
         try engine.start()
         startAnalysis(ring: ring, sampleRate: sampleRate, demo: nil, session: self.session)
+    }
+
+    /// Must stay nonisolated: a block formed inside a @MainActor method inherits that isolation,
+    /// and Swift 6 traps when the real-time audio thread calls it.
+    private nonisolated static func makeSink(writingTo ring: SampleRing) -> AVAudioSinkNode {
+        AVAudioSinkNode { _, frameCount, bufferList in
+            let buffers = UnsafeMutableAudioBufferListPointer(UnsafeMutablePointer(mutating: bufferList))
+            if let data = buffers.first?.mData {
+                ring.write(data.assumingMemoryBound(to: Float.self), count: Int(frameCount))
+            }
+            return noErr
+        }
     }
 
     @MainActor
