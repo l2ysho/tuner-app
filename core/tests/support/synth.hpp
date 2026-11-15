@@ -41,12 +41,19 @@ inline Signal missingFundamental(double hz, double sampleRate, std::size_t n, do
     return harmonics(hz, sampleRate, n, 2, 8, 0.0, phase);
 }
 
+// Box-Muller over raw mt19937 output: std::normal_distribution is implementation-defined, so
+// libstdc++ and libc++ would test different signals for the same seed.
 inline Signal whiteNoise(std::size_t n, std::uint32_t seed) {
     std::mt19937 rng(seed);
-    std::normal_distribution<float> dist(0.0f, 1.0f);
+    auto uniform = [&] { return (static_cast<double>(rng()) + 1.0) / 4294967297.0; };
     Signal out(n);
-    for (auto &s : out) {
-        s = dist(rng);
+    for (std::size_t i = 0; i < n; i += 2) {
+        const double r = std::sqrt(-2.0 * std::log(uniform()));
+        const double theta = 2.0 * std::numbers::pi * uniform();
+        out[i] = static_cast<float>(r * std::cos(theta));
+        if (i + 1 < n) {
+            out[i + 1] = static_cast<float>(r * std::sin(theta));
+        }
     }
     return out;
 }
