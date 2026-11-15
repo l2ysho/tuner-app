@@ -45,6 +45,13 @@ struct SettingsSheet: View {
                     .buttonStyle(.plain)
 
                     section("SCREEN")
+                    labelled("Meter") {
+                        Picker("Meter", selection: $model.strobe) {
+                            Text("Dial").tag(false)
+                            Text("Strobe").tag(true)
+                        }
+                        .pickerStyle(.segmented)
+                    }
                     toggleRow("Keep screen awake", isOn: $model.keepAwake)
 
                     CapsLabel(text: "NO ADS · NO TRACKING · NO ACCOUNT", size: 11)

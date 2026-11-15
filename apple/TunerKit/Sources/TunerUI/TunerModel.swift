@@ -35,6 +35,9 @@ public final class TunerModel {
     private(set) var customTunings: [Tuning] {
         didSet { defaults.set(try? JSONEncoder().encode(customTunings), forKey: Keys.customTunings) }
     }
+    var strobe: Bool {
+        didSet { defaults.set(strobe, forKey: Keys.strobe) }
+    }
     var keepAwake: Bool {
         didSet {
             defaults.set(keepAwake, forKey: Keys.keepAwake)
@@ -110,12 +113,14 @@ public final class TunerModel {
             Keys.tolerance: 3,
             Keys.accidentals: Accidentals.sharps.rawValue,
             Keys.keepAwake: false,
+            Keys.strobe: false,
         ])
         tuningID = defaults.string(forKey: Keys.tuning) ?? Tuning.standard.id
         a4 = defaults.integer(forKey: Keys.a4)
         toleranceCents = defaults.integer(forKey: Keys.tolerance)
         accidentals = Accidentals(rawValue: defaults.string(forKey: Keys.accidentals) ?? "") ?? .sharps
         keepAwake = defaults.bool(forKey: Keys.keepAwake)
+        strobe = defaults.bool(forKey: Keys.strobe)
         customTunings =
             defaults.data(forKey: Keys.customTunings).flatMap { try? JSONDecoder().decode([Tuning].self, from: $0) }
             ?? []
@@ -282,6 +287,7 @@ public final class TunerModel {
         static let tolerance = "tolerance"
         static let accidentals = "accidentals"
         static let keepAwake = "keepAwake"
+        static let strobe = "strobe"
         static let customTunings = "customTunings"
     }
 }

@@ -6,6 +6,8 @@ import TunerCore
 struct DialView: View {
     let display: TunerDisplay
     let width: CGFloat
+    /// Strobe band in place of the tick arc.
+    var strobe = false
 
     @Environment(\.colorSchemeContrast) private var contrast
 
@@ -26,8 +28,14 @@ struct DialView: View {
 
     var body: some View {
         ZStack(alignment: .bottom) {
-            ForEach(display.ticks, id: \.index) { tick in
-                tickView(tick)
+            if strobe {
+                StrobeBand(cents: display.cents, state: display.state)
+                    .frame(width: width * 0.9, height: 34 * scale)
+                    .position(x: width / 2, y: 40 * scale)
+            } else {
+                ForEach(display.ticks, id: \.index) { tick in
+                    tickView(tick)
+                }
             }
             noteLabel
         }

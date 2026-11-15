@@ -5,7 +5,7 @@ import TunerCore
 /// SwiftUI previews.
 public struct TunerPreview: View {
     public enum State: String, CaseIterable, Sendable {
-        case flat, sharp, inTune, idle, allTuned, chromatic
+        case flat, sharp, inTune, idle, allTuned, chromatic, strobe
     }
 
     @SwiftUI.State private var model: TunerModel
@@ -27,6 +27,8 @@ public struct TunerPreview: View {
             }
         case .chromatic:
             model.tuningID = Tuning.chromatic.id
+        case .strobe:
+            model.strobe = true
         default:
             break
         }
@@ -41,7 +43,7 @@ public struct TunerPreview: View {
 
     static func reading(_ state: State) -> TunerReading {
         switch state {
-        case .flat:
+        case .flat, .strobe:
             TunerReading(
                 midi: 45, stringIndex: 1, hz: 109.24, cents: -12, voiced: true, locked: false,
                 idle: false, rmsDb: -20)

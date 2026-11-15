@@ -18,7 +18,7 @@ struct TunerScreen: View {
             VStack(spacing: 0) {
                 Spacer(minLength: 24)
                 VStack(spacing: 16 * layout.dialScale) {
-                    DialView(display: display, width: layout.dialWidth)
+                    DialView(display: display, width: layout.dialWidth, strobe: model.strobe && !reduceMotion)
                     statusLine(display, scale: layout.dialScale)
                 }
                 Spacer(minLength: 24)
