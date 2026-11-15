@@ -32,7 +32,7 @@ test-dsp: _configure-dsp
 
 # Platform-independent Swift (TunerDSPC + TunerCore). Runs on macOS and Linux.
 test-core:
-    @{{q}} test-core env TUNERKIT_CORE_ONLY=1 swift test --package-path apple/TunerKit --quiet
+    @{{q}} test-core env TUNERKIT_CORE_ONLY=1 swift test --package-path apple/TunerKit
 
 # Regenerate the Xcode project from apple/project.yml.
 gen:
