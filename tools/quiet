@@ -19,7 +19,7 @@ printf 'FAIL  %-14s (full log: %s)\n' "$label" "${log#"$root"/}" >&2
 # Keep diagnostics, drop build-system noise such as multi-kilobyte compiler command lines.
 perl -pe 's/\e\[[0-9;]*[mK]//g; s/\e\]8;;.*?\e\\//g' "$log" |
     grep -E '(error|warning|FAIL|Failed|failed|✘|\[x\]|REQUIRE|CHECK|with expansion|with message|Expectation|recorded an issue|Snapshot|does not match|^  )' |
-    grep -vE 'Command line:|^\s*cd /|SwiftDriver|-Xcc|Test Suite .* passed|tests? passed|Start +[0-9]+:|Test +#[0-9]+: .*Passed|^\s*$' |
+    grep -vE 'Cannot export local symbol|Command line:|^\s*cd /|SwiftDriver|-Xcc|Test Suite .* passed|tests? passed|Start +[0-9]+:|Test +#[0-9]+: .*Passed|^\s*$' |
     cut -c1-400 | awk '!seen[$0]++' | head -60 >&2
 [ "${PIPESTATUS[1]}" -eq 0 ] || tail -40 "$log" >&2
 exit 1
