@@ -134,7 +134,8 @@ Real recordings go to `fixtures/` (Richard will record each string clean + with 
 2. **Idle**: neutral background, grey `–`, no lit ticks, no active key.
 3. **Microphone**: first-launch screen ("Let's hear your guitar" · "Allow microphone" · "NOTHING IS RECORDED OR SENT") and denied screen ("Microphone is off" · "Open Settings" · "Not now").
 4. **Tuning picker** (sheet): Guitar / Bass / Ukulele segmented control; presets Standard, Drop D, Half Step Down, Full Step Down, Drop C, DADGAD, Open G. Plain rows with hairline dividers, orange check on the selected one.
-5. **Settings** (sheet): A4 pitch stepper, in-tune range (±1/±3/±5 ¢), note names (sharps/flats), keep screen awake. Footer: `NO ADS · NO TRACKING · NO ACCOUNT`.
+5. **Settings** (sheet): A4 pitch stepper, in-tune range (±1/±3/±5 ¢), note names (sharps/flats), Tools → intonation check, meter (dial / strobe), keep screen awake.
+6. **Trial features** (Nov 2026, kept only if they survive testing): chromatic mode (picker segment), ALL TUNED status, custom tunings (picker → New tuning; long-press to edit/delete), 12th-fret intonation check, strobe meter, reference tone (long-press a string key; session is `.playAndRecord` + `.defaultToSpeaker`). Footer: `NO ADS · NO TRACKING · NO ACCOUNT`.
 
 ### Layout rule for larger screens
 Same structure everywhere: dial centred in free space, keys + toolbar anchored at the bottom, no split at a fold.
