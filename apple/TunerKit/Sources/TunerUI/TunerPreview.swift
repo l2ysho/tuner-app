@@ -24,7 +24,6 @@ public struct TunerPreview: View {
     public var body: some View {
         TunerScreen(model: model)
             .tint(Palette.sharpMark)
-            .preferredColorScheme(.light)
     }
 
     static func reading(_ state: State) -> TunerReading {

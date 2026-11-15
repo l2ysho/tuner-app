@@ -47,6 +47,8 @@ public final class MicrophoneSource: AudioSource {
         try session.setCategory(.record, mode: .measurement)
         try? session.setPreferredSampleRate(48_000)
         try? session.setPreferredIOBufferDuration(0.005)
+        // Without this, iOS mutes all haptics while the session records.
+        try? session.setAllowHapticsAndSystemSoundsDuringRecording(true)
         try session.setActive(true)
 
         let input = engine.inputNode

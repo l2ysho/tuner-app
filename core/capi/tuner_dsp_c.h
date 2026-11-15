@@ -34,7 +34,9 @@ typedef struct {
     float release_margin_cents;
     double lock_hold_sec;
     double idle_after_sec;
-    float ema_alpha;
+    float ema_slow_alpha;
+    float ema_fast_alpha;
+    float ema_fast_cents;
 } tdsp_tuner_config;
 
 typedef struct {

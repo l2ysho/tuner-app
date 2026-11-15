@@ -4,41 +4,43 @@ import TunerCore
 import UIKit
 
 extension Color {
-    init(hex: UInt32, opacity: Double = 1) {
+    /// Resolves per trait collection, so the whole palette follows the system appearance.
+    init(light: UInt32, dark: UInt32) {
         self.init(
-            .sRGB,
-            red: Double((hex >> 16) & 0xFF) / 255,
-            green: Double((hex >> 8) & 0xFF) / 255,
-            blue: Double(hex & 0xFF) / 255,
-            opacity: opacity)
+            uiColor: UIColor { traits in
+                let hex = traits.userInterfaceStyle == .dark ? dark : light
+                return UIColor(
+                    red: CGFloat((hex >> 16) & 0xFF) / 255, green: CGFloat((hex >> 8) & 0xFF) / 255,
+                    blue: CGFloat(hex & 0xFF) / 255, alpha: 1)
+            })
     }
 }
 
 enum Palette {
-    static let body = Color(hex: 0xE8E8E3)
-    static let panel = Color(hex: 0xF4F4F0)
-    static let ink = Color(hex: 0x1D1D1B)
-    static let grey = Color(hex: 0x9A9A94)
-    static let border = Color(hex: 0xC9C9C2)
-    static let hairline = Color(hex: 0xE2E2DC)
-    static let secondaryText = Color(hex: 0x4A4A45)
-    static let mutedText = Color(hex: 0x5E5E58)
-    static let idleLetter = Color(hex: 0xB4B4AD)
-    static let switchOff = Color(hex: 0xD6D6CF)
+    static let body = Color(light: 0xE8E8E3, dark: 0x151514)
+    static let panel = Color(light: 0xF4F4F0, dark: 0x222220)
+    static let ink = Color(light: 0x1D1D1B, dark: 0xECECE6)
+    static let grey = Color(light: 0x9A9A94, dark: 0x76766F)
+    static let border = Color(light: 0xC9C9C2, dark: 0x3C3C38)
+    static let hairline = Color(light: 0xE2E2DC, dark: 0x2C2C29)
+    static let secondaryText = Color(light: 0x4A4A45, dark: 0xBEBEB7)
+    static let mutedText = Color(light: 0x5E5E58, dark: 0x9E9E97)
+    static let idleLetter = Color(light: 0xB4B4AD, dark: 0x4C4C47)
+    static let switchOff = Color(light: 0xD6D6CF, dark: 0x3C3C38)
 
-    static let flatMark = Color(hex: 0x2F6FED)
-    static let sharpMark = Color(hex: 0xFF5A00)
-    static let inTuneMark = Color(hex: 0x2E9E4F)
-    static let flatText = Color(hex: 0x1F55C4)
-    static let sharpText = Color(hex: 0xA93A00)
-    static let inTuneText = Color(hex: 0x1E7A3A)
+    static let flatMark = Color(light: 0x2F6FED, dark: 0x5B8EF6)
+    static let sharpMark = Color(light: 0xFF5A00, dark: 0xFF7A33)
+    static let inTuneMark = Color(light: 0x2E9E4F, dark: 0x3FBF66)
+    static let flatText = Color(light: 0x1F55C4, dark: 0x93B3F9)
+    static let sharpText = Color(light: 0xA93A00, dark: 0xFF9E66)
+    static let inTuneText = Color(light: 0x1E7A3A, dark: 0x72D692)
 
     static func screenTint(_ state: TuneState) -> Color {
         switch state {
         case .idle: body
-        case .flat: Color(hex: 0xE4E9F2)
-        case .sharp: Color(hex: 0xF3E7DF)
-        case .inTune: Color(hex: 0xE2EEE4)
+        case .flat: Color(light: 0xE4E9F2, dark: 0x131A27)
+        case .sharp: Color(light: 0xF3E7DF, dark: 0x251912)
+        case .inTune: Color(light: 0xE2EEE4, dark: 0x122019)
         }
     }
 

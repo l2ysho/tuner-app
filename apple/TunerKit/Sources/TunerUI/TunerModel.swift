@@ -109,7 +109,7 @@ public final class TunerModel {
             Keys.a4: 440,
             Keys.tolerance: 3,
             Keys.accidentals: Accidentals.sharps.rawValue,
-            Keys.gate: -50.0,
+            Keys.gate: -65.0,
             Keys.haptics: true,
             Keys.keepAwake: false,
         ])

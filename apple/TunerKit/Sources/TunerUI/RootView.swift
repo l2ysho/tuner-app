@@ -29,7 +29,6 @@ public struct RootView: View {
             }
         }
         .tint(Palette.sharpMark)
-        .preferredColorScheme(.light)
         .onChange(of: scenePhase, initial: true) { _, phase in
             if phase == .active { model.sceneBecameActive() } else { model.sceneLeftActive() }
         }

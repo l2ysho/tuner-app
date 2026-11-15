@@ -71,11 +71,11 @@ Dependency direction: core ← TunerDSPC ← TunerCore ← TunerUI / TunerAudio 
 - **MPM (McLeod Pitch Method)** as the primary detector; **YIN** implemented too for comparison in the bench tool.
 - Parabolic interpolation of the peak for sub-sample accuracy.
 - **Clarity / confidence** threshold (start at ~0.9 for MPM) → below it the reading is "unvoiced".
-- **Noise gate** on RMS (default **−50 dBFS**, user-adjustable −80…−20).
+- **Noise gate** on RMS (core default −50 dBFS; app default **−65 dBFS**, user-adjustable −80…−20). −50 needed very loud playing on iPhone 17 Pro.
 - **Octave-error guard**: in auto string mode, prefer the candidate closest to a string of the current tuning.
 
 ### Post-processing (`Tuner` state machine)
-- Median of last 5 readings + light EMA on cents.
+- Median of last 5 readings + adaptive EMA on cents: alpha 0.03 for jitter, up to 1.0 for a change ≥ 10 ¢ (cubic in between). Steady display beats speed on tiny peg turns (~0.5 s to settle a 3 ¢ step).
 - `cents = 1200 · log2(f / f_target)`, A4 reference default **440 Hz** (range 415–466, 1 Hz steps).
 - **Lock**: |cents| ≤ tolerance (default **±3 ¢**, options ±1/±3/±5) held for ≥ 200 ms → `locked = true` (app plays a haptic once per lock).
 - Note naming: sharps or flats (user setting).
@@ -125,7 +125,8 @@ Real recordings go to `fixtures/` (Richard will record each string clean + with 
 - **SwiftUI**, iOS/iPadOS **26+**, iPhone + iPad (universal). Test device: iPhone 17 Pro.
 - State via `@Observable` model; audio on its own thread, UI reads the latest `TunerState` (no locks on the audio thread).
 - Persistence: `@AppStorage` for settings and the selected tuning.
-- Haptic on lock (`.sensoryFeedback` / `UIImpactFeedbackGenerator`), optional "keep screen awake".
+- Haptic on lock (`.sensoryFeedback`). The `.record` session mutes haptics unless `setAllowHapticsAndSystemSoundsDuringRecording(true)`. Optional "keep screen awake".
+- Light and dark appearance follow the system; every colour comes from `Palette` (light/dark pairs in `Theme.swift`).
 - `NSMicrophoneUsageDescription`: "The tuner listens to find the note you play. Nothing is recorded or sent."
 
 ### Screens (see canvas, page "Final — main screen")

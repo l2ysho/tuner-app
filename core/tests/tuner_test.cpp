@@ -6,8 +6,10 @@
 #include <catch2/catch_test_macros.hpp>
 #include <catch2/generators/catch_generators.hpp>
 
+#include <algorithm>
 #include <array>
 #include <cmath>
+#include <cstdint>
 
 using namespace tuner;
 using Catch::Approx;
@@ -172,11 +174,11 @@ TEST_CASE("lock has hysteresis around the tolerance edge") {
     }
     REQUIRE(s.locked);
     // Inside tolerance + release margin (3 + 1.5): the lock must hold, not re-trigger.
-    for (int i = 0; i < 50; ++i, now += kHopSec) {
+    for (int i = 0; i < 300; ++i, now += kHopSec) {
         s = t.push(voiced(detuned(440.0f, 4.2f)), now);
         CHECK(s.locked);
     }
-    for (int i = 0; i < 20; ++i, now += kHopSec) {
+    for (int i = 0; i < 300; ++i, now += kHopSec) {
         s = t.push(voiced(detuned(440.0f, 4.8f)), now);
     }
     CHECK_FALSE(s.locked);
@@ -264,4 +266,47 @@ TEST_CASE("pluck reaches a stable reading within 150 ms") {
     INFO("string=" << stringIdx << " stableSince=" << stableSince);
     REQUIRE(stableSince > 0.0);
     CHECK(stableSince - onsetSec <= 0.150);
+}
+
+TEST_CASE("jitter of ±3 cent between hops shows as a steady reading") {
+    Tuner t;
+    std::uint32_t rng = 12345;
+    auto jitter = [&] {
+        rng = rng * 1664525u + 1013904223u;
+        return (static_cast<float>(rng >> 8) / 16777216.0f * 2.0f - 1.0f) * 3.0f;
+    };
+    TunerState s;
+    double now = 0.0;
+    for (; now < 0.3; now += kHopSec) {
+        s = t.push(voiced(detuned(440.0f, jitter())), now);
+    }
+    float lo = 1e9f;
+    float hi = -1e9f;
+    for (; now < 3.0; now += kHopSec) {
+        s = t.push(voiced(detuned(440.0f, jitter())), now);
+        lo = std::min(lo, s.cents);
+        hi = std::max(hi, s.cents);
+        CHECK(s.locked);
+    }
+    INFO("range " << lo << " .. " << hi);
+    CHECK(hi - lo <= 1.5f);
+}
+
+TEST_CASE("a re-tune of 20 cent settles within 150 ms") {
+    Tuner t;
+    double now = 0.0;
+    for (; now < 0.5; now += kHopSec) {
+        t.push(voiced(detuned(440.0f, 20.0f)), now);
+    }
+    const double turned = now;
+    double settled = -1.0;
+    for (; now < turned + 1.0; now += kHopSec) {
+        const auto s = t.push(voiced(440.0f), now);
+        if (std::abs(s.cents) <= 1.0f && settled < 0.0) {
+            settled = now - turned;
+        }
+    }
+    INFO("settled after " << settled << " s");
+    CHECK(settled >= 0.0);
+    CHECK(settled <= 0.15);
 }

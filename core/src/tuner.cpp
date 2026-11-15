@@ -140,7 +140,14 @@ TunerState Tuner::push(const PitchResult &reading, double timestampSec) noexcept
     }
 
     const float rawCents = cents(medianHz, target.hz);
-    ema_ = emaValid_ ? ema_ + cfg_.emaAlpha * (rawCents - ema_) : rawCents;
+    if (emaValid_) {
+        const float delta = rawCents - ema_;
+        const float r = std::min(std::abs(delta) / cfg_.emaFastCents, 1.0f);
+        const float t = r * r * r;
+        ema_ += (cfg_.emaSlowAlpha + t * (cfg_.emaFastAlpha - cfg_.emaSlowAlpha)) * delta;
+    } else {
+        ema_ = rawCents;
+    }
     emaValid_ = true;
 
     const float window = cfg_.toleranceCents + (wasLocked ? cfg_.releaseMarginCents : 0.0f);

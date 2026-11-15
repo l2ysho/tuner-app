@@ -8,13 +8,16 @@ import TunerUI
 @MainActor
 @Suite
 struct TunerSnapshotTests {
-    @Test(arguments: TunerPreview.State.allCases)
-    func mainScreen(_ state: TunerPreview.State) {
+    @Test(arguments: TunerPreview.State.allCases, [UIUserInterfaceStyle.light, .dark])
+    func mainScreen(_ state: TunerPreview.State, _ style: UIUserInterfaceStyle) {
         assertSnapshot(
             of: TunerPreview(state),
             as: .image(
                 perceptualPrecision: 0.98, layout: .fixed(width: 402, height: 874),
-                traits: UITraitCollection(displayScale: 2)),
-            named: state.rawValue)
+                traits: UITraitCollection { traits in
+                    traits.displayScale = 2
+                    traits.userInterfaceStyle = style
+                }),
+            named: style == .dark ? "\(state.rawValue)-dark" : state.rawValue)
     }
 }

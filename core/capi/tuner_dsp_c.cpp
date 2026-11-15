@@ -34,7 +34,9 @@ tuner::TunerConfig toCpp(const tdsp_tuner_config &c) {
     out.releaseMarginCents = c.release_margin_cents;
     out.lockHoldSec = c.lock_hold_sec;
     out.idleAfterSec = c.idle_after_sec;
-    out.emaAlpha = c.ema_alpha;
+    out.emaSlowAlpha = c.ema_slow_alpha;
+    out.emaFastAlpha = c.ema_fast_alpha;
+    out.emaFastCents = c.ema_fast_cents;
     return out;
 }
 
@@ -79,8 +81,8 @@ tdsp_pitch tdsp_detector_process(tdsp_detector *detector, const float *samples, 
 
 tdsp_tuner_config tdsp_tuner_config_default(void) {
     const tuner::TunerConfig d;
-    return {d.a4Hz,        d.toleranceCents, d.releaseMarginCents,
-            d.lockHoldSec, d.idleAfterSec,   d.emaAlpha};
+    return {d.a4Hz,         d.toleranceCents, d.releaseMarginCents, d.lockHoldSec,
+            d.idleAfterSec, d.emaSlowAlpha,   d.emaFastAlpha,       d.emaFastCents};
 }
 
 tdsp_tuner *tdsp_tuner_create(const tdsp_tuner_config *config) {

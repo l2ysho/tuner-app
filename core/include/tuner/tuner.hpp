@@ -16,7 +16,11 @@ struct TunerConfig {
     float releaseMarginCents = 1.5f;
     double lockHoldSec = 0.2;
     double idleAfterSec = 1.0;
-    float emaAlpha = 0.35f;
+    // Adaptive EMA on cents: jitter gets the slow alpha, a change of emaFastCents or more
+    // gets the fast alpha (cubic in between), so a re-tune still follows quickly.
+    float emaSlowAlpha = 0.03f;
+    float emaFastAlpha = 1.0f;
+    float emaFastCents = 10.0f;
 };
 
 struct TunerState {
