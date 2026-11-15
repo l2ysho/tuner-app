@@ -32,6 +32,9 @@ public final class TunerModel {
     var accidentals: Accidentals {
         didSet { defaults.set(accidentals.rawValue, forKey: Keys.accidentals) }
     }
+    private(set) var customTunings: [Tuning] {
+        didSet { defaults.set(try? JSONEncoder().encode(customTunings), forKey: Keys.customTunings) }
+    }
     var keepAwake: Bool {
         didSet {
             defaults.set(keepAwake, forKey: Keys.keepAwake)
@@ -62,7 +65,7 @@ public final class TunerModel {
     @ObservationIgnored private let makeMicrophone: @MainActor () -> any AudioSource
     @ObservationIgnored private var microphone: (any AudioSource)?
 
-    var tuning: Tuning { Tuning.with(id: tuningID) ?? .standard }
+    var tuning: Tuning { Tuning.with(id: tuningID) ?? customTunings.first { $0.id == tuningID } ?? .standard }
 
     var display: TunerDisplay { display(for: reading) }
 
@@ -110,6 +113,9 @@ public final class TunerModel {
         toleranceCents = defaults.integer(forKey: Keys.tolerance)
         accidentals = Accidentals(rawValue: defaults.string(forKey: Keys.accidentals) ?? "") ?? .sharps
         keepAwake = defaults.bool(forKey: Keys.keepAwake)
+        customTunings =
+            defaults.data(forKey: Keys.customTunings).flatMap { try? JSONDecoder().decode([Tuning].self, from: $0) }
+            ?? []
 
         engine = TunerEngine { [weak self] reading, session in
             DispatchQueue.main.async {
@@ -125,6 +131,20 @@ public final class TunerModel {
     func toggleManualString(_ index: Int) {
         manualString = manualString == index ? nil : index
         pushConfig()
+    }
+
+    func saveCustomTuning(_ tuning: Tuning) {
+        if let index = customTunings.firstIndex(where: { $0.id == tuning.id }) {
+            customTunings[index] = tuning
+            if tuning.id == tuningID { pushConfig() }
+        } else {
+            customTunings.append(tuning)
+        }
+    }
+
+    func deleteCustomTuning(_ tuning: Tuning) {
+        customTunings.removeAll { $0.id == tuning.id }
+        if tuningID == tuning.id { tuningID = Tuning.standard.id }
     }
 
     func stepA4(_ delta: Int) {
@@ -238,5 +258,6 @@ public final class TunerModel {
         static let tolerance = "tolerance"
         static let accidentals = "accidentals"
         static let keepAwake = "keepAwake"
+        static let customTunings = "customTunings"
     }
 }

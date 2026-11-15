@@ -90,3 +90,12 @@ private func sine(_ hz: Double, sampleRate: Double, count: Int, start: Int = 0) 
     #expect(analyzer.poll()?.voiced == true)
     #expect(analyzer.poll() == nil)
 }
+
+@Test func customTuningRoundTripsThroughJSON() throws {
+    let tuning = Tuning.custom(name: "Open D", instrument: .guitar, notes: [38, 45, 50, 54, 57, 62])
+    #expect(tuning.isCustom)
+    #expect(!Tuning.standard.isCustom)
+    let decoded = try JSONDecoder().decode([Tuning].self, from: JSONEncoder().encode([tuning]))
+    #expect(decoded == [tuning])
+    #expect(decoded[0].spacedLetters == "D A D F♯ A D")
+}

@@ -1,6 +1,6 @@
 import Foundation
 
-public enum Accidentals: String, CaseIterable, Sendable {
+public enum Accidentals: String, CaseIterable, Codable, Sendable {
     case sharps, flats
 }
 
@@ -24,7 +24,7 @@ public func midiToHz(_ midi: Int, a4: Float = 440) -> Float {
     a4 * Float(pow(2.0, Double(midi - 69) / 12.0))
 }
 
-public enum Instrument: String, CaseIterable, Identifiable, Sendable {
+public enum Instrument: String, CaseIterable, Identifiable, Codable, Sendable {
     case guitar, bass, ukulele, chromatic
 
     public var id: String { rawValue }
@@ -42,7 +42,7 @@ public enum Instrument: String, CaseIterable, Identifiable, Sendable {
     public var minHz: Float { self == .bass || self == .chromatic ? 28 : 50 }
 }
 
-public struct Tuning: Identifiable, Hashable, Sendable {
+public struct Tuning: Identifiable, Hashable, Codable, Sendable {
     public let id: String
     public let name: String
     public let instrument: Instrument
@@ -108,6 +108,13 @@ extension Tuning {
     ]
 
     public static let chromatic = Tuning(id: "chromatic", name: "Chromatic", instrument: .chromatic, notes: [])
+
+    /// A user tuning starts from the instrument's standard tuning.
+    public static func custom(name: String, instrument: Instrument, notes: [Int]) -> Tuning {
+        Tuning(id: "custom.\(UUID().uuidString)", name: name, instrument: instrument, notes: notes)
+    }
+
+    public var isCustom: Bool { id.hasPrefix("custom.") }
 
     public static func presets(for instrument: Instrument) -> [Tuning] {
         all.filter { $0.instrument == instrument }

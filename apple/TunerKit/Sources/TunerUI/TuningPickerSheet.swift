@@ -6,6 +6,7 @@ struct TuningPickerSheet: View {
     @Environment(\.dismiss) private var dismiss
     @State private var instrument: Instrument = .guitar
     @State private var selection: String = Tuning.standard.id
+    @State private var editing: Tuning?
 
     var body: some View {
         NavigationStack {
@@ -24,10 +25,33 @@ struct TuningPickerSheet: View {
                     ForEach(Tuning.presets(for: instrument)) { tuning in
                         row(tuning)
                     }
+
+                    if instrument != .chromatic {
+                        CapsLabel(text: "CUSTOM")
+                            .padding(.top, 26)
+                            .padding(.bottom, 4)
+                        ForEach(model.customTunings.filter { $0.instrument == instrument }) { tuning in
+                            row(tuning)
+                                .contextMenu {
+                                    Button("Edit", systemImage: "pencil") { editing = tuning }
+                                    Button("Delete", systemImage: "trash", role: .destructive) {
+                                        model.deleteCustomTuning(tuning)
+                                        if selection == tuning.id { selection = model.tuningID }
+                                    }
+                                }
+                        }
+                        newTuningRow
+                    }
                 }
                 .padding(.horizontal, 20)
             }
             .background(Palette.panel)
+            .navigationDestination(item: $editing) { tuning in
+                TuningEditor(original: tuning) { saved in
+                    model.saveCustomTuning(saved)
+                    selection = saved.id
+                }
+            }
             .navigationTitle("Tuning")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
@@ -50,6 +74,26 @@ struct TuningPickerSheet: View {
             selection = model.tuningID
             instrument = model.tuning.instrument
         }
+    }
+
+    private var newTuningRow: some View {
+        Button {
+            let selected = Tuning.with(id: selection) ?? model.customTunings.first { $0.id == selection }
+            let base = selected.flatMap { $0.instrument == instrument ? $0 : nil }
+            editing = base ?? Tuning.presets(for: instrument).first
+        } label: {
+            HStack {
+                Image(systemName: "plus").font(.system(size: 15, weight: .semibold))
+                Text("New tuning").font(Typeface.ui(17, .medium, relativeTo: .body))
+                Spacer()
+            }
+            .foregroundStyle(Palette.ink)
+            .padding(.horizontal, 2)
+            .frame(minHeight: 60)
+            .contentShape(.rect)
+        }
+        .buttonStyle(.plain)
+        .accessibilityHint("Starts from the selected tuning. Touch and hold a custom tuning to edit or delete it.")
     }
 
     private func row(_ tuning: Tuning) -> some View {
