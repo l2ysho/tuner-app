@@ -24,7 +24,11 @@ public struct TunerDisplay: Sendable, Equatable {
     public let activeString: Int?
     public let accessibilityLabel: String
 
-    public init(reading: TunerReading, tuning: Tuning, accidentals: Accidentals, manualString: Int?) {
+    /// `allTuned`: every string of the tuning has locked this session; shown while idle.
+    public init(
+        reading: TunerReading, tuning: Tuning, accidentals: Accidentals, manualString: Int?,
+        allTuned: Bool = false
+    ) {
         let idle = reading.idle || reading.midi < 0
         let c = max(-50, min(50, reading.cents))
         let rounded = Int(c.rounded())
@@ -49,7 +53,7 @@ public struct TunerDisplay: Sendable, Equatable {
 
         let magnitude = abs(rounded)
         switch state {
-        case .idle: status = "PLAY A STRING"
+        case .idle: status = allTuned ? "ALL TUNED" : tuning.isChromatic ? "PLAY A NOTE" : "PLAY A STRING"
         case .inTune: status = "IN TUNE"
         case .flat: status = "−\(magnitude)¢  ▲"
         case .sharp: status = "+\(magnitude)¢  ▼"
@@ -78,7 +82,7 @@ public struct TunerDisplay: Sendable, Equatable {
         }
 
         switch state {
-        case .idle: accessibilityLabel = "No note. Play a string."
+        case .idle: accessibilityLabel = allTuned ? "All strings tuned." : "No note. \(status.capitalized)."
         case .inTune: accessibilityLabel = "\(letter) \(octave), in tune"
         case .flat: accessibilityLabel = "\(letter) \(octave), \(magnitude) cents flat, tune up"
         case .sharp: accessibilityLabel = "\(letter) \(octave), \(magnitude) cents sharp, tune down"

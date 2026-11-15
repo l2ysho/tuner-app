@@ -5,7 +5,7 @@ import TunerCore
 /// SwiftUI previews.
 public struct TunerPreview: View {
     public enum State: String, CaseIterable, Sendable {
-        case flat, sharp, inTune, idle
+        case flat, sharp, inTune, idle, allTuned, chromatic
     }
 
     @SwiftUI.State private var model: TunerModel
@@ -17,6 +17,19 @@ public struct TunerPreview: View {
         let model = TunerModel(
             defaults: defaults, permission: GrantedMicrophonePermission(),
             makeMicrophone: { SyntheticSource(DemoSignal(hz: 0, silent: true)) })
+        switch state {
+        case .allTuned:
+            for string in Tuning.standard.notes.indices {
+                model.show(
+                    TunerReading(
+                        midi: Tuning.standard.notes[string], stringIndex: string, hz: 0, cents: 0, voiced: true,
+                        locked: true, idle: false, rmsDb: -20))
+            }
+        case .chromatic:
+            model.tuningID = Tuning.chromatic.id
+        default:
+            break
+        }
         model.show(Self.reading(state))
         _model = SwiftUI.State(initialValue: model)
     }
@@ -40,8 +53,12 @@ public struct TunerPreview: View {
             TunerReading(
                 midi: 50, stringIndex: 2, hz: 146.92, cents: 1, voiced: true, locked: true,
                 idle: false, rmsDb: -20)
-        case .idle:
+        case .idle, .allTuned:
             .idle
+        case .chromatic:
+            TunerReading(
+                midi: 61, stringIndex: -1, hz: 278.4, cents: 7, voiced: true, locked: false,
+                idle: false, rmsDb: -20)
         }
     }
 }

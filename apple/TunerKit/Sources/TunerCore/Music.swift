@@ -25,7 +25,7 @@ public func midiToHz(_ midi: Int, a4: Float = 440) -> Float {
 }
 
 public enum Instrument: String, CaseIterable, Identifiable, Sendable {
-    case guitar, bass, ukulele
+    case guitar, bass, ukulele, chromatic
 
     public var id: String { rawValue }
 
@@ -34,11 +34,12 @@ public enum Instrument: String, CaseIterable, Identifiable, Sendable {
         case .guitar: "Guitar"
         case .bass: "Bass"
         case .ukulele: "Ukulele"
+        case .chromatic: "Chromatic"
         }
     }
 
-    /// Lowest pitch the detector looks for. Bass needs a longer lag range.
-    public var minHz: Float { self == .bass ? 28 : 50 }
+    /// Lowest pitch the detector looks for. Bass needs a longer lag range; chromatic covers both.
+    public var minHz: Float { self == .bass || self == .chromatic ? 28 : 50 }
 }
 
 public struct Tuning: Identifiable, Hashable, Sendable {
@@ -60,6 +61,9 @@ public struct Tuning: Identifiable, Hashable, Sendable {
         self.notes = notes
         self.accidentals = accidentals
     }
+
+    /// No strings: the tuner names the nearest note instead of matching a string.
+    public var isChromatic: Bool { notes.isEmpty }
 
     public func frequencies(a4: Float) -> [Float] { notes.map { midiToHz($0, a4: a4) } }
 
@@ -99,7 +103,11 @@ extension Tuning {
         Tuning(id: "ukulele.standard", name: "Standard", instrument: .ukulele, notes: [67, 60, 64, 69]),
         Tuning(id: "ukulele.lowG", name: "Low G", instrument: .ukulele, notes: [55, 60, 64, 69]),
         Tuning(id: "ukulele.baritone", name: "Baritone", instrument: .ukulele, notes: [50, 55, 59, 64]),
+
+        chromatic,
     ]
+
+    public static let chromatic = Tuning(id: "chromatic", name: "Chromatic", instrument: .chromatic, notes: [])
 
     public static func presets(for instrument: Instrument) -> [Tuning] {
         all.filter { $0.instrument == instrument }

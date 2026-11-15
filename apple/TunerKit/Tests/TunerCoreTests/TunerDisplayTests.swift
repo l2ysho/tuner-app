@@ -78,3 +78,26 @@ private func display(_ r: TunerReading, manual: Int? = nil, accidentals: Acciden
     let padPortrait = ScreenLayout(width: 834)
     #expect(abs(padPortrait.dialWidth - 834 * 0.62) < 0.01)
 }
+
+@Test func chromaticIdleAsksForANote() {
+    let d = TunerDisplay(reading: .idle, tuning: .chromatic, accidentals: .sharps, manualString: nil)
+    #expect(d.status == "PLAY A NOTE")
+    #expect(d.activeString == nil)
+}
+
+@Test func chromaticNamesTheNearestNote() {
+    let r = TunerReading(
+        midi: 61, stringIndex: -1, hz: 277.2, cents: 4, voiced: true, locked: false, idle: false, rmsDb: -20)
+    let d = TunerDisplay(reading: r, tuning: .chromatic, accidentals: .sharps, manualString: nil)
+    #expect(d.letter == "C♯")
+    #expect(d.octave == "4")
+    #expect(d.activeString == nil)
+}
+
+@Test func allTunedShowsWhileIdleOnly() {
+    let idle = TunerDisplay(reading: .idle, tuning: .standard, accidentals: .sharps, manualString: nil, allTuned: true)
+    #expect(idle.status == "ALL TUNED")
+    let playing = TunerDisplay(
+        reading: reading(cents: -12), tuning: .standard, accidentals: .sharps, manualString: nil, allTuned: true)
+    #expect(playing.status != "ALL TUNED")
+}

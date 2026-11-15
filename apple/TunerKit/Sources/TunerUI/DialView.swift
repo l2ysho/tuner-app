@@ -15,6 +15,8 @@ struct DialView: View {
     private static let radius: CGFloat = 184
     private static let letterSize: CGFloat = 176
     private static let octaveSize: CGFloat = 40
+    private static let accidentalSize: CGFloat = 64
+    private static let accidentalRise: CGFloat = 44
     /// Letter baseline in canvas coordinates (CSS line-height 0.82, bottom-aligned box).
     private static let letterBaseline: CGFloat = 228
     /// Octave baseline sits this far above the letter baseline.
@@ -56,9 +58,17 @@ struct DialView: View {
         let descender = Typeface.displayDescender(letterSize, .bold)
         // CSS letter-spacing −0.05em; negative tracking clips the glyph in SwiftUI, so it goes in the gap.
         return HStack(alignment: .firstTextBaseline, spacing: -0.05 * letterSize) {
-            Text(display.letter)
+            Text(display.letter.prefix(1))
                 .font(Typeface.display(letterSize, .bold))
                 .foregroundStyle(display.state == .idle ? Palette.idleLetter : Palette.ink)
+            // Inter Tight has no ♯/♭ glyphs; the fallback font draws them far too large.
+            if display.letter.count > 1 {
+                Text(display.letter.dropFirst())
+                    .font(.system(size: Self.accidentalSize * scale, weight: .bold))
+                    .foregroundStyle(Palette.ink)
+                    .baselineOffset(Self.accidentalRise * scale)
+                    .padding(.horizontal, 0.05 * letterSize)
+            }
             Text(display.octave)
                 .font(Typeface.display(Self.octaveSize * scale, .semibold))
                 .foregroundStyle(Palette.grey)

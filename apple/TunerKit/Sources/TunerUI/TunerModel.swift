@@ -64,8 +64,14 @@ public final class TunerModel {
 
     var tuning: Tuning { Tuning.with(id: tuningID) ?? .standard }
 
-    var display: TunerDisplay {
-        TunerDisplay(reading: reading, tuning: tuning, accidentals: accidentals, manualString: manualString)
+    var display: TunerDisplay { display(for: reading) }
+
+    var allTuned: Bool { !tuning.isChromatic && tunedStrings.count == tuning.notes.count }
+
+    private func display(for reading: TunerReading) -> TunerDisplay {
+        TunerDisplay(
+            reading: reading, tuning: tuning, accidentals: accidentals, manualString: manualString,
+            allTuned: allTuned)
     }
 
     var showsTuner: Bool {
@@ -205,9 +211,7 @@ public final class TunerModel {
         guard session == engine.session else { return }
         if new.locked, !latest.locked, new.stringIndex >= 0 { tunedStrings.insert(new.stringIndex) }
         latest = new
-        let next = TunerDisplay(
-            reading: new, tuning: tuning, accidentals: accidentals, manualString: manualString)
-        if next != display { reading = new }
+        if display(for: new) != display { reading = new }
     }
 
     private func refreshMicAccess() {

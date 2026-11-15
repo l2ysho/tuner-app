@@ -23,13 +23,17 @@ struct TunerScreen: View {
                 }
                 Spacer(minLength: 24)
                 VStack(spacing: 18) {
-                    StringKeys(
-                        names: model.tuning.noteNames(model.accidentals),
-                        active: display.activeString,
-                        manual: model.manualString,
-                        tuned: model.tunedStrings,
-                        height: layout.keyHeight
-                    ) { model.toggleManualString($0) }
+                    if model.tuning.isChromatic {
+                        Color.clear.frame(height: layout.keyHeight)
+                    } else {
+                        StringKeys(
+                            names: model.tuning.noteNames(model.accidentals),
+                            active: display.activeString,
+                            manual: model.manualString,
+                            tuned: model.tunedStrings,
+                            height: layout.keyHeight
+                        ) { model.toggleManualString($0) }
+                    }
                     ControlBar(
                         a4: model.a4, tuning: model.tuning,
                         onReference: { sheet = .settings },
@@ -70,7 +74,9 @@ struct TunerScreen: View {
         } else {
             Text(display.status)
                 .font(Typeface.mono(18 * scale, .semibold, relativeTo: .headline))
-                .foregroundStyle(Palette.text(display.state))
+                .foregroundStyle(
+                    display.state == .idle && model.allTuned ? Palette.inTuneText : Palette.text(display.state)
+                )
                 .contentTransition(.numericText())
                 .accessibilityHidden(true)
         }
