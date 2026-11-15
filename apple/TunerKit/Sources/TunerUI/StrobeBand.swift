@@ -6,6 +6,8 @@ import TunerCore
 struct StrobeBand: View {
     let cents: Int
     let state: TuneState
+    /// Snapshots need the same frame on every machine.
+    var frozen = false
 
     @State private var anchorPhase: Double = 0
     @State private var anchorTime = Date.now
@@ -15,7 +17,7 @@ struct StrobeBand: View {
     private static let stripes = 12
 
     var body: some View {
-        TimelineView(.animation(paused: state == .idle || state == .inTune)) { context in
+        TimelineView(.animation(paused: frozen || state == .idle || state == .inTune)) { context in
             let phase = phase(at: context.date)
             Canvas { canvas, size in
                 let period = size.width / CGFloat(Self.stripes)
@@ -46,6 +48,7 @@ struct StrobeBand: View {
     private var speed: Double { state == .inTune ? 0 : Double(cents) * Self.periodsPerCent }
 
     private func phase(at date: Date) -> Double {
+        if frozen { return 0 }
         let p = anchorPhase + date.timeIntervalSince(anchorTime) * speed
         return p - p.rounded(.down)
     }

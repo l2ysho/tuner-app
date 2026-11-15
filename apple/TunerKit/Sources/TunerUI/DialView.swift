@@ -8,6 +8,7 @@ struct DialView: View {
     let width: CGFloat
     /// Strobe band in place of the tick arc.
     var strobe = false
+    var frozen = false
 
     @Environment(\.colorSchemeContrast) private var contrast
 
@@ -29,7 +30,7 @@ struct DialView: View {
     var body: some View {
         ZStack(alignment: .bottom) {
             if strobe {
-                StrobeBand(cents: display.cents, state: display.state)
+                StrobeBand(cents: display.cents, state: display.state, frozen: frozen)
                     .frame(width: width * 0.9, height: 34 * scale)
                     .position(x: width / 2, y: 40 * scale)
             } else {

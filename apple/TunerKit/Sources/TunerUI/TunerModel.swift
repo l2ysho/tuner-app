@@ -64,6 +64,8 @@ public final class TunerModel {
     private(set) var audioUnavailable = false
 
     let demo: DemoSignal?
+    /// Set by TunerPreview: no time-based animation, so snapshots match across machines.
+    var frozen = false
     private var isActive = false
     private let defaults: UserDefaults
     @ObservationIgnored private var engine: TunerEngine!
@@ -145,47 +147,6 @@ public final class TunerModel {
     func toggleManualString(_ index: Int) {
         manualString = manualString == index ? nil : index
         pushConfig()
-    }
-
-    func saveCustomTuning(_ tuning: Tuning) {
-        if let index = customTunings.firstIndex(where: { $0.id == tuning.id }) {
-            customTunings[index] = tuning
-            if tuning.id == tuningID { pushConfig() }
-        } else {
-            customTunings.append(tuning)
-        }
-    }
-
-    func deleteCustomTuning(_ tuning: Tuning) {
-        customTunings.removeAll { $0.id == tuning.id }
-        if tuningID == tuning.id { tuningID = Tuning.standard.id }
-    }
-
-    /// Pins `string` (nil in chromatic mode) so the harmonic and the fretted note share one target.
-    func startIntonation(string: Int?) {
-        let check = IntonationCheck()
-        intonationCheck = check
-        intonation = check.status
-        manualString = string
-        pushConfig()
-    }
-
-    func endIntonation() {
-        intonationCheck = nil
-        intonation = nil
-        manualString = nil
-        pushConfig()
-    }
-
-    var canPlayTone: Bool { makeTonePlayer != nil }
-
-    func playReference(string: Int) {
-        guard let makeTonePlayer, tuning.notes.indices.contains(string) else { return }
-        let player = tonePlayer ?? makeTonePlayer()
-        tonePlayer = player
-        let seconds = 2.5
-        toneUntil = ProcessInfo.processInfo.systemUptime + seconds + 0.3
-        player.play(hz: midiToHz(tuning.notes[string], a4: Float(a4)), seconds: seconds)
     }
 
     func stepA4(_ delta: Int) {
@@ -308,5 +269,50 @@ public final class TunerModel {
         static let keepAwake = "keepAwake"
         static let strobe = "strobe"
         static let customTunings = "customTunings"
+    }
+}
+
+// MARK: Tools (custom tunings, intonation check, reference tone)
+
+extension TunerModel {
+    func saveCustomTuning(_ tuning: Tuning) {
+        if let index = customTunings.firstIndex(where: { $0.id == tuning.id }) {
+            customTunings[index] = tuning
+            if tuning.id == tuningID { pushConfig() }
+        } else {
+            customTunings.append(tuning)
+        }
+    }
+
+    func deleteCustomTuning(_ tuning: Tuning) {
+        customTunings.removeAll { $0.id == tuning.id }
+        if tuningID == tuning.id { tuningID = Tuning.standard.id }
+    }
+
+    /// Pins `string` (nil in chromatic mode) so the harmonic and the fretted note share one target.
+    func startIntonation(string: Int?) {
+        let check = IntonationCheck()
+        intonationCheck = check
+        intonation = check.status
+        manualString = string
+        pushConfig()
+    }
+
+    func endIntonation() {
+        intonationCheck = nil
+        intonation = nil
+        manualString = nil
+        pushConfig()
+    }
+
+    var canPlayTone: Bool { makeTonePlayer != nil }
+
+    func playReference(string: Int) {
+        guard let makeTonePlayer, tuning.notes.indices.contains(string) else { return }
+        let player = tonePlayer ?? makeTonePlayer()
+        tonePlayer = player
+        let seconds = 2.5
+        toneUntil = ProcessInfo.processInfo.systemUptime + seconds + 0.3
+        player.play(hz: midiToHz(tuning.notes[string], a4: Float(a4)), seconds: seconds)
     }
 }

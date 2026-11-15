@@ -32,6 +32,7 @@ public struct TunerPreview: View {
         default:
             break
         }
+        model.frozen = true
         model.show(Self.reading(state))
         _model = SwiftUI.State(initialValue: model)
     }
