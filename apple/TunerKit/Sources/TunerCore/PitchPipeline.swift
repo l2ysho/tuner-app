@@ -76,18 +76,18 @@ public final class PitchDetector {
 /// Detector + tuner state machine. Not thread-safe: keep every call on one queue.
 public final class PitchPipeline {
     public static let windowSize = 4096
+    /// Only drops near-silence; noise is rejected by the detector's clarity threshold, not by level.
+    public static let gateDb: Float = -80
 
     public let sampleRate: Double
     public private(set) var minHz: Float
-    public private(set) var gateDb: Float
     private var detector: PitchDetector
     private let tuner: OpaquePointer
 
-    public init(sampleRate: Double, minHz: Float = 50, gateDb: Float = -50) {
+    public init(sampleRate: Double, minHz: Float = 50) {
         self.sampleRate = sampleRate
         self.minHz = minHz
-        self.gateDb = gateDb
-        detector = PitchDetector(sampleRate: sampleRate, minHz: minHz, gateDb: gateDb)
+        detector = PitchDetector(sampleRate: sampleRate, minHz: minHz, gateDb: Self.gateDb)
         guard let tuner = tdsp_tuner_create(nil) else {
             fatalError("tdsp_tuner_create failed: out of memory")
         }
@@ -97,11 +97,10 @@ public final class PitchPipeline {
     deinit { tdsp_tuner_destroy(tuner) }
 
     /// Allocates a new detector; call off the real-time thread.
-    public func configureDetector(minHz: Float, gateDb: Float) {
-        guard minHz != self.minHz || gateDb != self.gateDb else { return }
+    public func configureDetector(minHz: Float) {
+        guard minHz != self.minHz else { return }
         self.minHz = minHz
-        self.gateDb = gateDb
-        detector = PitchDetector(sampleRate: sampleRate, minHz: minHz, gateDb: gateDb)
+        detector = PitchDetector(sampleRate: sampleRate, minHz: minHz, gateDb: Self.gateDb)
     }
 
     public func setStrings(_ hz: [Float]) {

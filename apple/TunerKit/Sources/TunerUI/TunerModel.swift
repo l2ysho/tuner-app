@@ -32,15 +32,6 @@ public final class TunerModel {
     var accidentals: Accidentals {
         didSet { defaults.set(accidentals.rawValue, forKey: Keys.accidentals) }
     }
-    var gateDb: Double {
-        didSet {
-            defaults.set(gateDb, forKey: Keys.gate)
-            pushConfig()
-        }
-    }
-    var hapticsOn: Bool {
-        didSet { defaults.set(hapticsOn, forKey: Keys.haptics) }
-    }
     var keepAwake: Bool {
         didSet {
             defaults.set(keepAwake, forKey: Keys.keepAwake)
@@ -50,7 +41,6 @@ public final class TunerModel {
 
     static let a4Range = 415...466
     static let toleranceOptions = [1, 3, 5]
-    static let gateRange = -80.0 ... -20.0
 
     // MARK: Runtime state
 
@@ -60,8 +50,6 @@ public final class TunerModel {
     @ObservationIgnored private var latest = TunerReading.idle
     private(set) var manualString: Int?
     private(set) var tunedStrings: Set<Int> = []
-    /// Increments once per lock; drives the haptic.
-    private(set) var lockCount = 0
     private(set) var micAccess: MicAccess = .undetermined
     var micSkipped = false
     private(set) var audioUnavailable = false
@@ -109,16 +97,12 @@ public final class TunerModel {
             Keys.a4: 440,
             Keys.tolerance: 3,
             Keys.accidentals: Accidentals.sharps.rawValue,
-            Keys.gate: -65.0,
-            Keys.haptics: true,
             Keys.keepAwake: false,
         ])
         tuningID = defaults.string(forKey: Keys.tuning) ?? Tuning.standard.id
         a4 = defaults.integer(forKey: Keys.a4)
         toleranceCents = defaults.integer(forKey: Keys.tolerance)
         accidentals = Accidentals(rawValue: defaults.string(forKey: Keys.accidentals) ?? "") ?? .sharps
-        gateDb = defaults.double(forKey: Keys.gate)
-        hapticsOn = defaults.bool(forKey: Keys.haptics)
         keepAwake = defaults.bool(forKey: Keys.keepAwake)
 
         engine = TunerEngine { [weak self] reading, session in
@@ -219,10 +203,7 @@ public final class TunerModel {
 
     private func receive(_ new: TunerReading, session: UInt64) {
         guard session == engine.session else { return }
-        if new.locked, !latest.locked {
-            lockCount += 1
-            if new.stringIndex >= 0 { tunedStrings.insert(new.stringIndex) }
-        }
+        if new.locked, !latest.locked, new.stringIndex >= 0 { tunedStrings.insert(new.stringIndex) }
         latest = new
         let next = TunerDisplay(
             reading: new, tuning: tuning, accidentals: accidentals, manualString: manualString)
@@ -240,7 +221,7 @@ public final class TunerModel {
             PipelineConfig(
                 strings: tuning.frequencies(a4: Float(a4)), a4: Float(a4),
                 tolerance: Float(toleranceCents), manualString: manualString ?? -1,
-                minHz: tuning.instrument.minHz, gateDb: Float(gateDb)))
+                minHz: tuning.instrument.minHz))
     }
 
     private func updateIdleTimer() {
@@ -252,8 +233,6 @@ public final class TunerModel {
         static let a4 = "a4"
         static let tolerance = "tolerance"
         static let accidentals = "accidentals"
-        static let gate = "noiseGateDb"
-        static let haptics = "haptics"
         static let keepAwake = "keepAwake"
     }
 }

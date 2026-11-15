@@ -26,19 +26,7 @@ struct SettingsSheet: View {
                         }
                         .pickerStyle(.segmented)
                     }
-                    labelled("Noise gate", value: "\(Int(model.gateDb)) dB") {
-                        Slider(value: gateBinding, in: TunerModel.gateRange) {
-                            Text("Noise gate")
-                        } minimumValueLabel: {
-                            Text("More").font(Typeface.mono(10, .regular)).foregroundStyle(Palette.mutedText)
-                        } maximumValueLabel: {
-                            Text("Less").font(Typeface.mono(10, .regular)).foregroundStyle(Palette.mutedText)
-                        }
-                        .accessibilityValue("\(Int(model.gateDb)) decibels")
-                    }
-
-                    section("FEEDBACK")
-                    toggleRow("Haptic tap when in tune", isOn: $model.hapticsOn)
+                    section("SCREEN")
                     toggleRow("Keep screen awake", isOn: $model.keepAwake)
 
                     CapsLabel(text: "NO ADS · NO TRACKING · NO ACCOUNT", size: 11)
@@ -61,10 +49,6 @@ struct SettingsSheet: View {
                 }
             }
         }
-    }
-
-    private var gateBinding: Binding<Double> {
-        Binding(get: { model.gateDb }, set: { model.gateDb = $0.rounded() })
     }
 
     private func section(_ title: String) -> some View {
@@ -107,17 +91,9 @@ struct SettingsSheet: View {
         .accessibilityValue("\(model.a4) hertz")
     }
 
-    private func labelled<Content: View>(
-        _ title: String, value: String? = nil, @ViewBuilder content: () -> Content
-    ) -> some View {
+    private func labelled<Content: View>(_ title: String, @ViewBuilder content: () -> Content) -> some View {
         VStack(alignment: .leading, spacing: 10) {
-            HStack {
-                Text(title).font(Typeface.ui(17, .medium, relativeTo: .body))
-                Spacer()
-                if let value {
-                    Text(value).font(Typeface.mono(13, .semibold, relativeTo: .footnote))
-                }
-            }
+            Text(title).font(Typeface.ui(17, .medium, relativeTo: .body))
             content()
         }
         .padding(.vertical, 14)

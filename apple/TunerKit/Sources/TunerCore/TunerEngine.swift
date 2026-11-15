@@ -6,17 +6,15 @@ public struct PipelineConfig: Sendable, Equatable {
     public var tolerance: Float
     public var manualString: Int
     public var minHz: Float
-    public var gateDb: Float
 
     public init(
-        strings: [Float], a4: Float, tolerance: Float, manualString: Int, minHz: Float, gateDb: Float
+        strings: [Float], a4: Float, tolerance: Float, manualString: Int, minHz: Float
     ) {
         self.strings = strings
         self.a4 = a4
         self.tolerance = tolerance
         self.manualString = manualString
         self.minHz = minHz
-        self.gateDb = gateDb
     }
 }
 
@@ -57,8 +55,7 @@ public final class TunerEngine: @unchecked Sendable {
         queue.async { [self] in
             sessionTag = session
             pumped = source
-            let pipeline = PitchPipeline(
-                sampleRate: sampleRate, minHz: config?.minHz ?? 50, gateDb: config?.gateDb ?? -50)
+            let pipeline = PitchPipeline(sampleRate: sampleRate, minHz: config?.minHz ?? 50)
             if let config { Self.configure(pipeline, from: nil, to: config) }
             analyzer = Analyzer(ring: ring, pipeline: pipeline, hop: Self.hop)
 
@@ -104,7 +101,7 @@ public final class TunerEngine: @unchecked Sendable {
     }
 
     private static func configure(_ p: PitchPipeline, from old: PipelineConfig?, to new: PipelineConfig) {
-        p.configureDetector(minHz: new.minHz, gateDb: new.gateDb)
+        p.configureDetector(minHz: new.minHz)
         if old?.a4 != new.a4 { p.setReference(new.a4) }
         if old?.strings != new.strings { p.setStrings(new.strings) }
         if old?.tolerance != new.tolerance { p.setTolerance(new.tolerance) }

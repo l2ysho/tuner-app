@@ -71,13 +71,13 @@ Dependency direction: core ← TunerDSPC ← TunerCore ← TunerUI / TunerAudio 
 - **MPM (McLeod Pitch Method)** as the primary detector; **YIN** implemented too for comparison in the bench tool.
 - Parabolic interpolation of the peak for sub-sample accuracy.
 - **Clarity / confidence** threshold (start at ~0.9 for MPM) → below it the reading is "unvoiced".
-- **Noise gate** on RMS (core default −50 dBFS; app default **−65 dBFS**, user-adjustable −80…−20). −50 needed very loud playing on iPhone 17 Pro.
+- **Level floor** −80 dBFS, fixed (no user setting): noise is rejected by clarity, not level. A user noise gate was tried and dropped.
 - **Octave-error guard**: in auto string mode, prefer the candidate closest to a string of the current tuning.
 
 ### Post-processing (`Tuner` state machine)
 - Median of last 5 readings + adaptive EMA on cents: alpha 0.03 for jitter, up to 1.0 for a change ≥ 10 ¢ (cubic in between). Steady display beats speed on tiny peg turns (~0.5 s to settle a 3 ¢ step).
 - `cents = 1200 · log2(f / f_target)`, A4 reference default **440 Hz** (range 415–466, 1 Hz steps).
-- **Lock**: |cents| ≤ tolerance (default **±3 ¢**, options ±1/±3/±5) held for ≥ 200 ms → `locked = true` (app plays a haptic once per lock).
+- **Lock**: |cents| ≤ tolerance (default **±3 ¢**, options ±1/±3/±5) held for ≥ 200 ms → `locked = true` (marks the string as tuned).
 - Note naming: sharps or flats (user setting).
 - Auto string detection: nearest string of the active tuning; manual string selection overrides it.
 - Idle: no voiced reading for > 1 s → idle state.
@@ -125,7 +125,7 @@ Real recordings go to `fixtures/` (Richard will record each string clean + with 
 - **SwiftUI**, iOS/iPadOS **26+**, iPhone + iPad (universal). Test device: iPhone 17 Pro.
 - State via `@Observable` model; audio on its own thread, UI reads the latest `TunerState` (no locks on the audio thread).
 - Persistence: `@AppStorage` for settings and the selected tuning.
-- Haptic on lock (`.sensoryFeedback`). The `.record` session mutes haptics unless `setAllowHapticsAndSystemSoundsDuringRecording(true)`. Optional "keep screen awake".
+- No haptics (tried and dropped: not useful while playing). Optional "keep screen awake".
 - Light and dark appearance follow the system; every colour comes from `Palette` (light/dark pairs in `Theme.swift`).
 - `NSMicrophoneUsageDescription`: "The tuner listens to find the note you play. Nothing is recorded or sent."
 
@@ -134,7 +134,7 @@ Real recordings go to `fixtures/` (Richard will record each string clean + with 
 2. **Idle**: neutral background, grey `–`, no lit ticks, no active key.
 3. **Microphone**: first-launch screen ("Let's hear your guitar" · "Allow microphone" · "NOTHING IS RECORDED OR SENT") and denied screen ("Microphone is off" · "Open Settings" · "Not now").
 4. **Tuning picker** (sheet): Guitar / Bass / Ukulele segmented control; presets Standard, Drop D, Half Step Down, Full Step Down, Drop C, DADGAD, Open G. Plain rows with hairline dividers, orange check on the selected one.
-5. **Settings** (sheet): A4 pitch stepper, in-tune range (±1/±3/±5 ¢), note names (sharps/flats), noise gate, haptic tap when in tune, keep screen awake. Footer: `NO ADS · NO TRACKING · NO ACCOUNT`.
+5. **Settings** (sheet): A4 pitch stepper, in-tune range (±1/±3/±5 ¢), note names (sharps/flats), keep screen awake. Footer: `NO ADS · NO TRACKING · NO ACCOUNT`.
 
 ### Layout rule for larger screens
 Same structure everywhere: dial centred in free space, keys + toolbar anchored at the bottom, no split at a fold.
@@ -164,7 +164,7 @@ Dial ≈ 62 % of screen width (max 520 pt); keys + toolbar ≈ 74 % (max 620 pt)
 |---|---|---|
 | **M0** | Repo scaffold, CMake + Catch2, CI (build + tests on macOS runner), README | `ctest` green in CI |
 | **M1** | DSP core: MPM, YIN, note math, `Tuner` state machine, synthetic test signals, bench CLI | All quality targets in §3 pass |
-| **M2** | iOS app shell: audio capture, SwiftUI main screen (flat / sharp / in tune / idle), mic permission flow, haptic on lock | Tunes a real guitar on iPhone 17 Pro |
+| **M2** | iOS app shell: audio capture, SwiftUI main screen (flat / sharp / in tune / idle), mic permission flow | Tunes a real guitar on iPhone 17 Pro |
 | **M3** | Tuning picker + settings sheets, persistence | All settings work and survive relaunch |
 | **M4** | iPad (landscape + portrait) layouts | Matches canvas |
 | **M5** | Polish: accessibility, app icon, App Store metadata, TestFlight | TestFlight build |

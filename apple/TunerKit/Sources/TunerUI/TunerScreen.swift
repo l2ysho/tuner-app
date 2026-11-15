@@ -46,7 +46,6 @@ struct TunerScreen: View {
         .background(Palette.screenTint(display.state).ignoresSafeArea())
         .animation(reduceMotion ? nil : .easeOut(duration: 0.25), value: display.state)
         .animation(reduceMotion ? nil : .easeOut(duration: 0.12), value: display.ticks)
-        .sensoryFeedback(trigger: model.lockCount) { _, _ in model.hapticsOn ? .success : nil }
         .sheet(item: $sheet) { sheet in
             switch sheet {
             case .tuning: TuningPickerSheet(model: model)
