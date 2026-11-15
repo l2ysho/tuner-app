@@ -17,7 +17,8 @@ struct TunerApp: App {
             let demo: DemoSignal? = nil
         #endif
         return TunerModel(
-            demo: demo, permission: SystemMicrophonePermission(), makeMicrophone: { MicrophoneSource() })
+            demo: demo, permission: SystemMicrophonePermission(), makeMicrophone: { MicrophoneSource() },
+            makeTonePlayer: { SpeakerTonePlayer() })
     }()
 
     var body: some Scene {

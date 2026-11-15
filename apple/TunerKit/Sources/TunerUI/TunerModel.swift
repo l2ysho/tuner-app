@@ -70,6 +70,10 @@ public final class TunerModel {
     @ObservationIgnored private let permission: any MicrophonePermission
     @ObservationIgnored private let makeMicrophone: @MainActor () -> any AudioSource
     @ObservationIgnored private var microphone: (any AudioSource)?
+    @ObservationIgnored private let makeTonePlayer: (@MainActor () -> any TonePlayer)?
+    @ObservationIgnored private var tonePlayer: (any TonePlayer)?
+    /// The microphone hears the reference tone; it must not mark the string as tuned.
+    @ObservationIgnored private var toneUntil = 0.0
 
     var tuning: Tuning { Tuning.with(id: tuningID) ?? customTunings.first { $0.id == tuningID } ?? .standard }
 
@@ -101,12 +105,14 @@ public final class TunerModel {
         defaults: UserDefaults = .standard,
         demo: DemoSignal? = nil,
         permission: any MicrophonePermission,
-        makeMicrophone: @escaping @MainActor () -> any AudioSource
+        makeMicrophone: @escaping @MainActor () -> any AudioSource,
+        makeTonePlayer: (@MainActor () -> any TonePlayer)? = nil
     ) {
         self.defaults = defaults
         self.demo = demo
         self.permission = permission
         self.makeMicrophone = makeMicrophone
+        self.makeTonePlayer = makeTonePlayer
         defaults.register(defaults: [
             Keys.tuning: Tuning.standard.id,
             Keys.a4: 440,
@@ -169,6 +175,17 @@ public final class TunerModel {
         intonation = nil
         manualString = nil
         pushConfig()
+    }
+
+    var canPlayTone: Bool { makeTonePlayer != nil }
+
+    func playReference(string: Int) {
+        guard let makeTonePlayer, tuning.notes.indices.contains(string) else { return }
+        let player = tonePlayer ?? makeTonePlayer()
+        tonePlayer = player
+        let seconds = 2.5
+        toneUntil = ProcessInfo.processInfo.systemUptime + seconds + 0.3
+        player.play(hz: midiToHz(tuning.notes[string], a4: Float(a4)), seconds: seconds)
     }
 
     func stepA4(_ delta: Int) {
@@ -258,7 +275,9 @@ public final class TunerModel {
             intonationCheck = check
             if check.status != intonation { intonation = check.status }
         }
-        if new.locked, !latest.locked, new.stringIndex >= 0 { tunedStrings.insert(new.stringIndex) }
+        if new.locked, !latest.locked, new.stringIndex >= 0, ProcessInfo.processInfo.systemUptime > toneUntil {
+            tunedStrings.insert(new.stringIndex)
+        }
         latest = new
         if display(for: new) != display { reading = new }
     }

@@ -44,7 +44,9 @@ public final class MicrophoneSource: AudioSource {
         stop()
         let session = AVAudioSession.sharedInstance()
         // .measurement turns off the input processing (AGC, noise suppression) that skews pitch.
-        try session.setCategory(.record, mode: .measurement)
+        // .playAndRecord so the reference tone can play without a category switch, which would
+        // restart this engine.
+        try session.setCategory(.playAndRecord, mode: .measurement, options: [.defaultToSpeaker])
         try? session.setPreferredSampleRate(48_000)
         try? session.setPreferredIOBufferDuration(0.005)
         try session.setActive(true)

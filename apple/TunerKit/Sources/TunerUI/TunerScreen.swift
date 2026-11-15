@@ -31,7 +31,8 @@ struct TunerScreen: View {
                             active: display.activeString,
                             manual: model.manualString,
                             tuned: model.tunedStrings,
-                            height: layout.keyHeight
+                            height: layout.keyHeight,
+                            onLongPress: model.canPlayTone ? { model.playReference(string: $0) } : nil
                         ) { model.toggleManualString($0) }
                     }
                     ControlBar(
