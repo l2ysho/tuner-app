@@ -26,6 +26,24 @@ struct SettingsSheet: View {
                         }
                         .pickerStyle(.segmented)
                     }
+                    section("TOOLS")
+                    NavigationLink {
+                        IntonationView(model: model)
+                    } label: {
+                        HStack {
+                            Text("Intonation check").font(Typeface.ui(17, .medium, relativeTo: .body))
+                            Spacer()
+                            Image(systemName: "chevron.right")
+                                .font(.system(size: 13, weight: .semibold))
+                                .foregroundStyle(Palette.mutedText)
+                        }
+                        .foregroundStyle(Palette.ink)
+                        .frame(minHeight: 60)
+                        .contentShape(.rect)
+                        .overlay(alignment: .bottom) { hairline }
+                    }
+                    .buttonStyle(.plain)
+
                     section("SCREEN")
                     toggleRow("Keep screen awake", isOn: $model.keepAwake)
 

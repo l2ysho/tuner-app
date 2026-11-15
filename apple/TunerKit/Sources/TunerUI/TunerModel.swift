@@ -53,6 +53,9 @@ public final class TunerModel {
     @ObservationIgnored private var latest = TunerReading.idle
     private(set) var manualString: Int?
     private(set) var tunedStrings: Set<Int> = []
+    /// Non-nil while the intonation check is open.
+    private(set) var intonation: IntonationCheck.Status?
+    @ObservationIgnored private var intonationCheck: IntonationCheck?
     private(set) var micAccess: MicAccess = .undetermined
     var micSkipped = false
     private(set) var audioUnavailable = false
@@ -147,6 +150,22 @@ public final class TunerModel {
         if tuningID == tuning.id { tuningID = Tuning.standard.id }
     }
 
+    /// Pins `string` (nil in chromatic mode) so the harmonic and the fretted note share one target.
+    func startIntonation(string: Int?) {
+        let check = IntonationCheck()
+        intonationCheck = check
+        intonation = check.status
+        manualString = string
+        pushConfig()
+    }
+
+    func endIntonation() {
+        intonationCheck = nil
+        intonation = nil
+        manualString = nil
+        pushConfig()
+    }
+
     func stepA4(_ delta: Int) {
         a4 = min(Self.a4Range.upperBound, max(Self.a4Range.lowerBound, a4 + delta))
     }
@@ -229,6 +248,11 @@ public final class TunerModel {
 
     private func receive(_ new: TunerReading, session: UInt64) {
         guard session == engine.session else { return }
+        if var check = intonationCheck {
+            check.push(cents: new.cents, voiced: new.voiced, time: ProcessInfo.processInfo.systemUptime)
+            intonationCheck = check
+            if check.status != intonation { intonation = check.status }
+        }
         if new.locked, !latest.locked, new.stringIndex >= 0 { tunedStrings.insert(new.stringIndex) }
         latest = new
         if display(for: new) != display { reading = new }
