@@ -28,7 +28,7 @@ jobs:
           path: |
             build/dsp-asan
             apple/TunerKit/.build
-          key: linux-${{ hashFiles('core/**', 'apple/TunerKit/**') }}
+          key: linux-${{ hashFiles('core/**/CMakeLists.txt', 'apple/TunerKit/Package.swift') }}
           restore-keys: linux-
 
       - run: just test-dsp
