@@ -1,13 +1,14 @@
 #!/usr/bin/env bash
-# Prints the UDID of the newest available "iPhone <n> Pro" simulator on the newest iOS runtime.
+# Prints the UDID of the newest "iPhone <n> Pro" simulator on the newest iOS runtime that has one.
+# Runtimes can repeat a version (the CI image has a second iOS 27.2 holding only iPhone Duo).
 # Override with SIMULATOR_UDID.
 set -euo pipefail
 if [ -n "${SIMULATOR_UDID:-}" ]; then echo "$SIMULATOR_UDID"; exit 0; fi
 xcrun simctl list devices available -j | jq -r '
-  .devices | to_entries
-  | map(select(.key | test("iOS")))
-  | sort_by(.key | capture("iOS-(?<v>.*)").v | [scan("[0-9]+") | tonumber])
-  | reverse | .[0].value
-  | map(select(.name | test("^iPhone [0-9]+ Pro$")))
-  | sort_by(.name | capture("iPhone (?<n>[0-9]+)").n | tonumber)
-  | last | .udid // empty' | grep . || { echo "no iPhone Pro simulator found" >&2; exit 1; }
+  [.devices | to_entries[]
+   | select(.key | test("iOS"))
+   | (.key | capture("iOS-(?<v>.*)").v | [scan("[0-9]+") | tonumber]) as $os
+   | .value[]
+   | select(.name | test("^iPhone [0-9]+ Pro$"))
+   | {os: $os, model: (.name | capture("iPhone (?<n>[0-9]+)").n | tonumber), udid}]
+  | sort_by(.os, .model) | last | .udid // empty' | grep . || { echo "no iPhone Pro simulator found" >&2; exit 1; }
