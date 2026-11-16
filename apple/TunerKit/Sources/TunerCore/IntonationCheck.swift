@@ -38,11 +38,14 @@ public struct IntonationCheck: Sendable {
     public static let settleSec = 0.3
     public static let captureSec = 0.6
     public static let okCents: Float = 2
+    /// One unvoiced hop inside a ringing note is not silence.
+    public static let silenceSec = 0.2
 
     public private(set) var status = Status(
         step: .harmonic, harmonicCents: nil, frettedCents: nil, progress: 0, waitingForSilence: false)
 
     private var voicedSince: Double?
+    private var silentSince: Double?
     private var sum: Float = 0
     private var count = 0
 
@@ -51,10 +54,13 @@ public struct IntonationCheck: Sendable {
     public mutating func push(cents: Float, voiced: Bool, time: Double) {
         guard status.step != .done else { return }
         guard voiced else {
-            status.waitingForSilence = false
+            let since = silentSince ?? time
+            silentSince = since
+            if time - since >= Self.silenceSec { status.waitingForSilence = false }
             resetCapture()
             return
         }
+        silentSince = nil
         if status.waitingForSilence { return }
         let since = voicedSince ?? time
         voicedSince = since
@@ -78,6 +84,12 @@ public struct IntonationCheck: Sendable {
     }
 
     public mutating func restart() { self = IntonationCheck() }
+
+    /// Audio stopped (background, interruption): a capture must not span the gap.
+    public mutating func interrupt() {
+        silentSince = nil
+        resetCapture()
+    }
 
     private mutating func resetCapture() {
         voicedSince = nil

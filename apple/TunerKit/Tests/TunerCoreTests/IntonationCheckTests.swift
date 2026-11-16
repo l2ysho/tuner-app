@@ -13,9 +13,13 @@ private func play(_ check: inout IntonationCheck, cents: Float, seconds: Double,
     return t
 }
 
-private func silence(_ check: inout IntonationCheck, at t: Double) -> Double {
-    check.push(cents: 0, voiced: false, time: t)
-    return t + hop
+private func silence(_ check: inout IntonationCheck, at start: Double, seconds: Double = 0.3) -> Double {
+    var t = start
+    while t < start + seconds {
+        check.push(cents: 0, voiced: false, time: t)
+        t += hop
+    }
+    return t
 }
 
 @Test func capturesHarmonicThenFrettedAndCompares() {
@@ -59,6 +63,24 @@ private func silence(_ check: inout IntonationCheck, at t: Double) -> Double {
     var check = IntonationCheck()
     var t = play(&check, cents: 0, seconds: 0.5, from: 0)
     t = silence(&check, at: t)
+    #expect(check.status.step == .harmonic)
+    #expect(check.status.progress == 0)
+}
+
+@Test func oneDropOutInARingingHarmonicIsNotSilence() {
+    var check = IntonationCheck()
+    var t = play(&check, cents: 0, seconds: 1.0, from: 0)
+    t = silence(&check, at: t, seconds: hop)
+    _ = play(&check, cents: 0, seconds: 1.0, from: t)
+    #expect(check.status.step == .fretted)
+    #expect(check.status.frettedCents == nil)
+}
+
+@Test func anInterruptionRestartsTheCapture() {
+    var check = IntonationCheck()
+    let t = play(&check, cents: 0, seconds: 0.6, from: 0)
+    check.interrupt()
+    _ = play(&check, cents: 0, seconds: hop, from: t + 30)
     #expect(check.status.step == .harmonic)
     #expect(check.status.progress == 0)
 }

@@ -92,6 +92,11 @@ public final class TunerEngine: @unchecked Sendable {
         }
     }
 
+    /// Drops the smoothing history so the next note does not start from the last one.
+    public func resetSmoothing() {
+        queue.async { [self] in analyzer?.pipeline.reset() }
+    }
+
     private func tick() {
         guard let analyzer, let sessionTag else { return }
         pumped?.pump(into: analyzer.ring)

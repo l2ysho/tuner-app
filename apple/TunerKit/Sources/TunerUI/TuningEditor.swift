@@ -5,6 +5,9 @@ import TunerCore
 /// instrument's standard tuning, so the detector range still fits.
 struct TuningEditor: View {
     let original: Tuning
+    /// New tunings start from `original` but never replace it.
+    let isNew: Bool
+    let accidentals: Accidentals
     let onSave: (Tuning) -> Void
     @Environment(\.dismiss) private var dismiss
     @State private var name: String
@@ -12,10 +15,12 @@ struct TuningEditor: View {
 
     private let reference: [Int]
 
-    init(original: Tuning, onSave: @escaping (Tuning) -> Void) {
+    init(original: Tuning, isNew: Bool, accidentals: Accidentals, onSave: @escaping (Tuning) -> Void) {
         self.original = original
+        self.isNew = isNew
+        self.accidentals = accidentals
         self.onSave = onSave
-        _name = State(initialValue: original.isCustom ? original.name : "")
+        _name = State(initialValue: isNew ? "" : original.name)
         _notes = State(initialValue: original.notes)
         let standard = Tuning.presets(for: original.instrument).first ?? original
         reference = standard.notes.count == original.notes.count ? standard.notes : original.notes
@@ -42,7 +47,7 @@ struct TuningEditor: View {
             .padding(.horizontal, 20)
         }
         .background(Palette.panel)
-        .navigationTitle(original.isCustom ? "Edit tuning" : "New tuning")
+        .navigationTitle(isNew ? "New tuning" : "Edit tuning")
         .navigationBarTitleDisplayMode(.inline)
         .toolbar {
             ToolbarItem(placement: .confirmationAction) {
@@ -60,15 +65,15 @@ struct TuningEditor: View {
 
     private func save() {
         let tuning =
-            original.isCustom
-            ? Tuning(id: original.id, name: trimmedName, instrument: original.instrument, notes: notes)
-            : Tuning.custom(name: trimmedName, instrument: original.instrument, notes: notes)
+            isNew
+            ? Tuning.custom(name: trimmedName, instrument: original.instrument, notes: notes)
+            : Tuning(id: original.id, name: trimmedName, instrument: original.instrument, notes: notes)
         onSave(tuning)
         dismiss()
     }
 
     private func stringRow(_ index: Int) -> some View {
-        let note = NoteName(midi: notes[index], accidentals: .sharps)
+        let note = NoteName(midi: notes[index], accidentals: accidentals)
         let range = (reference[index] - 12)...(reference[index] + 12)
         return HStack {
             Text("String \(notes.count - index)")
@@ -89,8 +94,17 @@ struct TuningEditor: View {
         }
         .frame(minHeight: 60)
         .overlay(alignment: .bottom) { hairline }
-        .accessibilityElement(children: .contain)
+        // One adjustable element: VoiceOver reads the note and swipes up/down to change it.
+        .accessibilityElement(children: .ignore)
+        .accessibilityLabel("String \(notes.count - index)")
         .accessibilityValue("\(note.letter) \(note.octave)")
+        .accessibilityAdjustableAction { direction in
+            switch direction {
+            case .increment where notes[index] < range.upperBound: notes[index] += 1
+            case .decrement where notes[index] > range.lowerBound: notes[index] -= 1
+            default: break
+            }
+        }
     }
 
     private func step(_ symbol: String, label: String, enabled: Bool, action: @escaping () -> Void) -> some View {

@@ -6,7 +6,7 @@ struct TuningPickerSheet: View {
     @Environment(\.dismiss) private var dismiss
     @State private var instrument: Instrument = .guitar
     @State private var selection: String = Tuning.standard.id
-    @State private var editing: Tuning?
+    @State private var editing: TuningEdit?
 
     var body: some View {
         NavigationStack {
@@ -33,7 +33,9 @@ struct TuningPickerSheet: View {
                         ForEach(model.customTunings.filter { $0.instrument == instrument }) { tuning in
                             row(tuning)
                                 .contextMenu {
-                                    Button("Edit", systemImage: "pencil") { editing = tuning }
+                                    Button("Edit", systemImage: "pencil") {
+                                        editing = TuningEdit(tuning: tuning, isNew: false)
+                                    }
                                     Button("Delete", systemImage: "trash", role: .destructive) {
                                         model.deleteCustomTuning(tuning)
                                         if selection == tuning.id { selection = model.tuningID }
@@ -46,8 +48,8 @@ struct TuningPickerSheet: View {
                 .padding(.horizontal, 20)
             }
             .background(Palette.panel)
-            .navigationDestination(item: $editing) { tuning in
-                TuningEditor(original: tuning) { saved in
+            .navigationDestination(item: $editing) { edit in
+                TuningEditor(original: edit.tuning, isNew: edit.isNew, accidentals: model.accidentals) { saved in
                     model.saveCustomTuning(saved)
                     selection = saved.id
                 }
@@ -80,7 +82,7 @@ struct TuningPickerSheet: View {
         Button {
             let selected = Tuning.with(id: selection) ?? model.customTunings.first { $0.id == selection }
             let base = selected.flatMap { $0.instrument == instrument ? $0 : nil }
-            editing = base ?? Tuning.presets(for: instrument).first
+            editing = (base ?? Tuning.presets(for: instrument).first).map { TuningEdit(tuning: $0, isNew: true) }
         } label: {
             HStack {
                 Image(systemName: "plus").font(.system(size: 15, weight: .semibold))
@@ -129,4 +131,10 @@ struct TuningPickerSheet: View {
         .buttonStyle(.plain)
         .accessibilityAddTraits(selected ? .isSelected : [])
     }
+}
+
+private struct TuningEdit: Hashable, Identifiable {
+    let tuning: Tuning
+    let isNew: Bool
+    var id: String { (isNew ? "new:" : "edit:") + tuning.id }
 }

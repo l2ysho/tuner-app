@@ -79,6 +79,8 @@ public final class TunerModel {
     /// Non-nil while the intonation check is open.
     private(set) var intonation: IntonationCheck.Status?
     @ObservationIgnored private var intonationCheck: IntonationCheck?
+    /// The main screen's pin, given back when the intonation check closes.
+    @ObservationIgnored private var pinnedBeforeIntonation: Int?
     private(set) var micAccess: MicAccess = .undetermined
     var micSkipped = false
     private(set) var audioUnavailable = false
@@ -193,6 +195,7 @@ public final class TunerModel {
     func sceneLeftActive() {
         isActive = false
         engine.stop()
+        interruptIntonation()
         resetReading()
         updateIdleTimer()
     }
@@ -225,6 +228,7 @@ public final class TunerModel {
         switch event {
         case .interrupted:
             engine.stop()
+            interruptIntonation()
             resetReading()
         case .resumed, .lost:
             resetReading()
@@ -247,8 +251,11 @@ public final class TunerModel {
     private func receive(_ new: TunerReading, session: UInt64) {
         guard session == engine.session else { return }
         if var check = intonationCheck {
+            let step = check.status.step
             check.push(cents: new.cents, voiced: new.voiced, time: ProcessInfo.processInfo.systemUptime)
             intonationCheck = check
+            // The fretted note must not inherit the harmonic's smoothed value.
+            if check.status.step != step { engine.resetSmoothing() }
             if check.status != intonation { intonation = check.status }
         }
         if new.locked, !latest.locked, new.stringIndex >= 0 {
@@ -300,7 +307,11 @@ extension TunerModel {
     func saveCustomTuning(_ tuning: Tuning) {
         if let index = customTunings.firstIndex(where: { $0.id == tuning.id }) {
             customTunings[index] = tuning
-            if tuning.id == tuningID { pushConfig() }
+            if tuning.id == tuningID {
+                manualString = nil
+                tunedStrings = []
+                pushConfig()
+            }
         } else {
             customTunings.append(tuning)
         }
@@ -313,6 +324,7 @@ extension TunerModel {
 
     /// Pins `string` (nil in chromatic mode) so the harmonic and the fretted note share one target.
     func startIntonation(string: Int?) {
+        if intonationCheck == nil { pinnedBeforeIntonation = manualString }
         let check = IntonationCheck()
         intonationCheck = check
         intonation = check.status
@@ -320,10 +332,18 @@ extension TunerModel {
         pushConfig()
     }
 
+    private func interruptIntonation() {
+        guard var check = intonationCheck else { return }
+        check.interrupt()
+        intonationCheck = check
+        if check.status != intonation { intonation = check.status }
+    }
+
     func endIntonation() {
         intonationCheck = nil
         intonation = nil
-        manualString = nil
+        manualString = pinnedBeforeIntonation
+        pinnedBeforeIntonation = nil
         pushConfig()
     }
 }
