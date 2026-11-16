@@ -1,5 +1,6 @@
 import AVFoundation
 import TunerCore
+import os
 
 /// Plucked-string-like tone: a few harmonics with exponential decay, on its own engine so the
 /// microphone graph is untouched.
@@ -25,8 +26,17 @@ public final class SpeakerTonePlayer: TonePlayer {
         engine.connect(source, to: engine.mainMixerNode, format: mono)
         node = source
         engine.prepare()
-        try? engine.start()
+        do {
+            try engine.start()
+            Self.log.info(
+                "tone \(hz) Hz, mode \(session.mode.rawValue), out \(session.currentRoute.outputs.map(\.portType.rawValue))"
+            )
+        } catch {
+            Self.log.error("tone engine failed: \(error)")
+        }
     }
+
+    private static let log = Logger(subsystem: "sk.riviatech.freetuner", category: "tone")
 
     private func stop() {
         if engine.isRunning { engine.stop() }
@@ -49,37 +59,48 @@ public final class SpeakerTonePlayer: TonePlayer {
 }
 
 /// Touched only by the render thread after creation.
+/// Phone speakers barely play below ~300 Hz, so the low strings are heard through their harmonics:
+/// a sawtooth-like series up to 4 kHz, upper harmonics fading faster like a plucked string.
 private final class ToneState: @unchecked Sendable {
     private let step: Double
-    private let decay: Double
     private let frames: Int
+    private var gains: [Double]
+    private let fades: [Double]
     private var phase = 0.0
     private var frame = 0
 
-    private static let harmonics: [(Double, Double)] = [(1, 0.6), (2, 0.25), (3, 0.12), (4, 0.06)]
+    private static let topHz = 4000.0
+    private static let level = 0.45
 
     init(hz: Double, sampleRate: Double, frames: Int) {
         step = 2 * Double.pi * hz / sampleRate
-        decay = log(0.001) / Double(max(frames, 1))
         self.frames = frames
+        let count = max(1, Int(Self.topHz / hz))
+        let baseDecay = log(0.001) / Double(max(frames, 1))
+        gains = (1...count).map { Self.level / Double($0) }
+        fades = (1...count).map { exp(baseDecay * (1 + 0.15 * Double($0 - 1))) }
     }
 
     func render(into out: UnsafeMutablePointer<Float>, count: Int) {
-        for i in 0..<count {
-            guard frame < frames else {
-                out[i] = 0
-                continue
+        gains.withUnsafeMutableBufferPointer { gains in
+            fades.withUnsafeBufferPointer { fades in
+                for i in 0..<count {
+                    guard frame < frames else {
+                        out[i] = 0
+                        continue
+                    }
+                    let attack = min(1, Double(frame) / 240)
+                    var sample = 0.0
+                    for n in 0..<gains.count {
+                        sample += gains[n] * sin(phase * Double(n + 1))
+                        gains[n] *= fades[n]
+                    }
+                    out[i] = Float(sample * attack)
+                    phase += step
+                    if phase > 2 * Double.pi { phase -= 2 * Double.pi }
+                    frame += 1
+                }
             }
-            let attack = min(1, Double(frame) / 240)
-            let envelope = attack * exp(decay * Double(frame))
-            var sample = 0.0
-            for (multiple, gain) in Self.harmonics {
-                sample += gain * sin(phase * multiple)
-            }
-            out[i] = Float(sample * envelope * 0.5)
-            phase += step
-            if phase > 2 * Double.pi * 4 { phase -= 2 * Double.pi * 4 }
-            frame += 1
         }
     }
 }

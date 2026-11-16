@@ -45,6 +45,14 @@ struct SettingsSheet: View {
                     .buttonStyle(.plain)
 
                     section("SCREEN")
+                    labelled("Appearance") {
+                        Picker("Appearance", selection: $model.appearance) {
+                            Text("System").tag(Appearance.system)
+                            Text("Light").tag(Appearance.light)
+                            Text("Dark").tag(Appearance.dark)
+                        }
+                        .pickerStyle(.segmented)
+                    }
                     labelled("Meter") {
                         Picker("Meter", selection: $model.strobe) {
                             Text("Dial").tag(false)

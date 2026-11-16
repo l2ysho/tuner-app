@@ -4,6 +4,20 @@ import TunerCore
 
 typealias MicAccess = MicrophonePermissionStatus
 
+enum Appearance: String, CaseIterable {
+    case system, light, dark
+
+    /// Set on the windows, not with `preferredColorScheme`: going back to `nil` there leaves open sheets
+    /// in the old scheme.
+    var interfaceStyle: UIUserInterfaceStyle {
+        switch self {
+        case .system: .unspecified
+        case .light: .light
+        case .dark: .dark
+        }
+    }
+}
+
 @MainActor
 @Observable
 public final class TunerModel {
@@ -37,6 +51,12 @@ public final class TunerModel {
     }
     var strobe: Bool {
         didSet { defaults.set(strobe, forKey: Keys.strobe) }
+    }
+    var appearance: Appearance {
+        didSet {
+            defaults.set(appearance.rawValue, forKey: Keys.appearance)
+            applyAppearance()
+        }
     }
     var keepAwake: Bool {
         didSet {
@@ -129,6 +149,7 @@ public final class TunerModel {
         accidentals = Accidentals(rawValue: defaults.string(forKey: Keys.accidentals) ?? "") ?? .sharps
         keepAwake = defaults.bool(forKey: Keys.keepAwake)
         strobe = defaults.bool(forKey: Keys.strobe)
+        appearance = Appearance(rawValue: defaults.string(forKey: Keys.appearance) ?? "") ?? .system
         customTunings =
             defaults.data(forKey: Keys.customTunings).flatMap { try? JSONDecoder().decode([Tuning].self, from: $0) }
             ?? []
@@ -261,6 +282,12 @@ public final class TunerModel {
         UIApplication.shared.isIdleTimerDisabled = keepAwake && isActive
     }
 
+    func applyAppearance() {
+        for case let scene as UIWindowScene in UIApplication.shared.connectedScenes {
+            for window in scene.windows { window.overrideUserInterfaceStyle = appearance.interfaceStyle }
+        }
+    }
+
     private enum Keys {
         static let tuning = "tuning"
         static let a4 = "a4"
@@ -268,6 +295,7 @@ public final class TunerModel {
         static let accidentals = "accidentals"
         static let keepAwake = "keepAwake"
         static let strobe = "strobe"
+        static let appearance = "appearance"
         static let customTunings = "customTunings"
     }
 }

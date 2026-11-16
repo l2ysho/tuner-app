@@ -126,7 +126,7 @@ Real recordings go to `fixtures/` (Richard will record each string clean + with 
 - State via `@Observable` model; audio on its own thread, UI reads the latest `TunerState` (no locks on the audio thread).
 - Persistence: `@AppStorage` for settings and the selected tuning.
 - No haptics (tried and dropped: not useful while playing). Optional "keep screen awake".
-- Light and dark appearance follow the system; every colour comes from `Palette` (light/dark pairs in `Theme.swift`).
+- Appearance: System (default) / Light / Dark in Settings, set on the windows; every colour comes from `Palette` (light/dark pairs in `Theme.swift`).
 - `NSMicrophoneUsageDescription`: "The tuner listens to find the note you play. Nothing is recorded or sent."
 
 ### Screens (see canvas, page "Final — main screen")
@@ -134,7 +134,7 @@ Real recordings go to `fixtures/` (Richard will record each string clean + with 
 2. **Idle**: neutral background, grey `–`, no lit ticks, no active key.
 3. **Microphone**: first-launch screen ("Let's hear your guitar" · "Allow microphone" · "NOTHING IS RECORDED OR SENT") and denied screen ("Microphone is off" · "Open Settings" · "Not now").
 4. **Tuning picker** (sheet): Guitar / Bass / Ukulele segmented control; presets Standard, Drop D, Half Step Down, Full Step Down, Drop C, DADGAD, Open G. Plain rows with hairline dividers, orange check on the selected one.
-5. **Settings** (sheet): A4 pitch stepper, in-tune range (±1/±3/±5 ¢), note names (sharps/flats), Tools → intonation check, meter (dial / strobe), keep screen awake.
+5. **Settings** (sheet): A4 pitch stepper, in-tune range (±1/±3/±5 ¢), note names (sharps/flats), Tools → intonation check, appearance (system / light / dark), meter (dial / strobe), keep screen awake.
 6. **Trial features** (Nov 2026, kept only if they survive testing): chromatic mode (picker segment), ALL TUNED status, custom tunings (picker → New tuning; long-press to edit/delete), 12th-fret intonation check, strobe meter, reference tone (long-press a string key; session is `.playAndRecord` + `.defaultToSpeaker`). Footer: `NO ADS · NO TRACKING · NO ACCOUNT`.
 
 ### Layout rule for larger screens
