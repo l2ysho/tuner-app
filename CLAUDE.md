@@ -13,7 +13,7 @@
 - See the UI: `just screenshot state=flat` (flat | sharp | intune | idle | sweep | live), then read `artifacts/screen.png`.
 - Snapshot failures write diffs to `artifacts/snapshots/`; open the PNGs. Re-record with `just record-snapshots` and look at every new image before committing it.
 - Xcode MCP (`.mcp.json`, `xcrun mcpbridge`) needs Xcode running with the project open and MCP enabled in Xcode → Settings → Intelligence.
-- TestFlight: bump `CURRENT_PROJECT_VERSION` in `apple/project.yml`, then `just upload`.
+- TestFlight: bump `CURRENT_PROJECT_VERSION` in `apple/project.yml`, then `just upload`. Signs with an App Store Connect API key: `ASC_KEY_ID` + `ASC_ISSUER_ID` in the untracked `.env`, key at `~/.appstoreconnect/private_keys/AuthKey_<id>.p8`.
 
 Rules:
 - No logic in `apple/Tuner/` (app target): wiring only.

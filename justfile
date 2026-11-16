@@ -2,6 +2,7 @@
 # Full logs: build/logs/<step>.log.
 
 set shell := ["bash", "-euo", "pipefail", "-c"]
+set dotenv-load
 
 q := justfile_directory() / "tools/quiet"
 dd := justfile_directory() / "build/xcode"
@@ -68,10 +69,12 @@ screenshot state="flat": build-app
     echo "artifacts/screen.png ({{state}})"
 
 # Signed App Store build uploaded to TestFlight. Bump CURRENT_PROJECT_VERSION in project.yml first.
+# Needs ASC_KEY_ID and ASC_ISSUER_ID (App Store Connect API key), e.g. in an untracked .env.
 upload: gen
+    @[ -n "${ASC_KEY_ID:-}" ] && [ -n "${ASC_ISSUER_ID:-}" ] || { echo "set ASC_KEY_ID and ASC_ISSUER_ID in .env"; exit 1; }
     @rm -rf build/release
     @{{q}} archive xcodebuild archive -project {{project}} -scheme Tuner -configuration Release -destination generic/platform=iOS -archivePath build/release/Tuner.xcarchive CODE_SIGNING_ALLOWED=NO
-    @{{q}} upload xcodebuild -exportArchive -archivePath build/release/Tuner.xcarchive -exportPath build/release/upload -exportOptionsPlist apple/ExportOptions.plist -allowProvisioningUpdates
+    @{{q}} upload xcodebuild -exportArchive -archivePath build/release/Tuner.xcarchive -exportPath build/release/upload -exportOptionsPlist apple/ExportOptions.plist -allowProvisioningUpdates -authenticationKeyID "$ASC_KEY_ID" -authenticationKeyIssuerID "$ASC_ISSUER_ID" -authenticationKeyPath "${ASC_KEY_PATH:-$HOME/.appstoreconnect/private_keys/AuthKey_$ASC_KEY_ID.p8}"
 
 _configure-dsp:
     @[ -f {{dsp_build}}/build.ninja ] || {{q}} configure-dsp cmake -S core -B {{dsp_build}} -G Ninja -DCMAKE_BUILD_TYPE=Debug -DTUNER_SANITIZE=ON -DTUNER_BUILD_TOOLS=OFF

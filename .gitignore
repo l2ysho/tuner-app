@@ -18,3 +18,5 @@ Package.resolved
 
 .claude/worktrees/
 .claude/settings.local.json
+
+.env
