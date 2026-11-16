@@ -10,7 +10,7 @@ settings:
     # The app name lives here only; rename the app by changing this line.
     APP_DISPLAY_NAME: Freetuner
     MARKETING_VERSION: "0.1.0"
-    CURRENT_PROJECT_VERSION: "8"
+    CURRENT_PROJECT_VERSION: "9"
     APP_BUNDLE_ID: sk.riviatech.freetuner
     DEVELOPMENT_TEAM: 5RU7BRARKN
     CODE_SIGN_STYLE: Automatic
