@@ -181,6 +181,6 @@ Dial ≈ 62 % of screen width (max 520 pt); keys + toolbar ≈ 74 % (max 620 pt)
 
 ## 7. Open questions
 - App Store name: "Freetuner" is free as an exact name, but a tuner called "Freetune" exists and the name is generic. Have a fallback ready if App Review rejects it (shortlist: Beatless, Plumb, Zeroed, Unfret).
-- App icon: three concepts on the canvas (A · Dial, B · Meter on ink, C · Orange knob) — not chosen.
+- App icon: decided (Nov 2026) — strobe, five green bars with the centre one long, `apple/Tuner/AppIcon.icon` (Icon Composer, layered for Liquid Glass; edit it in Icon Composer). Render with `"$(xcode-select -p)/../Applications/Icon Composer.app/Contents/Executables/ictool" apple/Tuner/AppIcon.icon --export-image --output-file out.png --platform iOS --rendition Default --width 512 --height 512 --scale 1` (`xcrun ictool` is a different tool).
 - Real string recordings for `fixtures/` — pending.
 - iPhone Duo point sizes are estimates (474×696 closed, 904×640 open) — confirm in the simulator.
