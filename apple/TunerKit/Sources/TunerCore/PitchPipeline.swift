@@ -51,7 +51,7 @@ public final class PitchDetector {
 
     public init(
         algorithm: PitchAlgorithm = .mpm, sampleRate: Double, window: Int = PitchPipeline.windowSize,
-        minHz: Float = 50, gateDb: Float = -50
+        minHz: Float = 50, gateDb: Float = PitchPipeline.gateDb
     ) {
         var config = tdsp_detector_config_default()
         config.sample_rate = Float(sampleRate)

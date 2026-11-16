@@ -31,7 +31,8 @@ struct MicrophoneScreen: View {
                 .padding(.top, 14)
             Spacer()
             Button(action: onPrimary) {
-                Text(denied ? "Open Settings" : "Allow microphone")
+                // "Continue", not "Allow": App Review rejects pre-prompt buttons that mimic the system prompt.
+                Text(denied ? "Open Settings" : "Continue")
                     .font(Typeface.ui(17, .semibold, relativeTo: .body))
                     .foregroundStyle(Palette.panel)
                     .frame(maxWidth: .infinity)

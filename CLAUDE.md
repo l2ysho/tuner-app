@@ -43,7 +43,7 @@ repo/
 ├── apple/
 │   ├── project.yml           # XcodeGen manifest, the only source of the Xcode project
 │   ├── Tuner/                # app target: @main + wiring, assets
-│   ├── AudioUnit/            # AUv3 extension (pass-through placeholder)
+│   ├── AudioUnit/            # AUv3 extension (pass-through placeholder, NOT embedded in the app)
 │   ├── SnapshotTests/        # swift-snapshot-testing, reference PNGs in __Snapshots__
 │   └── TunerKit/             # SwiftPM package with almost all Swift code
 │       ├── Sources/TunerDSPC # C target: core/ sources via symlinks, exposes only the C header
@@ -51,7 +51,7 @@ repo/
 │       ├── Sources/TunerUI   # SwiftUI views, TunerModel, bundled fonts (no AVFoundation)
 │       └── Sources/TunerAudio# MicrophoneSource (AVAudioEngine), permission
 ├── fixtures/                 # WAV recordings `<note>_<desc>.wav` (git LFS); tests skip while empty
-└── .github/workflows/ci.yml  # Linux: test-dsp + test-core. macOS: just check
+└── .github/workflows/ci.yml  # Linux: test-dsp + test-core. macOS (xcode-27 runner, Xcode 27.2 = release Xcode): just check
 ```
 
 Dependency direction: core ← TunerDSPC ← TunerCore ← TunerUI / TunerAudio ← App, AUv3.
@@ -86,7 +86,7 @@ Dependency direction: core ← TunerDSPC ← TunerCore ← TunerUI / TunerAudio 
 
 ```cpp
 namespace tuner {
-struct DetectorConfig { float sampleRate = 48000; int window = 4096; float clarityThreshold = 0.9f; float gateDb = -50; };
+struct DetectorConfig { float sampleRate = 48000; int window = 4096; float clarityThreshold = 0.9f; float gateDb = -80; };
 struct PitchResult    { float hz; float clarity; float rmsDb; bool voiced; };
 
 class PitchDetector {               // MPM; YinDetector has the same interface
@@ -124,7 +124,7 @@ Real recordings go to `fixtures/` (Richard will record each string clean + with 
 
 - **SwiftUI**, iOS/iPadOS **26+**, iPhone + iPad (universal). Test device: iPhone 17 Pro.
 - State via `@Observable` model; audio on its own thread, UI reads the latest `TunerState` (no locks on the audio thread).
-- Persistence: `@AppStorage` for settings and the selected tuning.
+- Persistence: `TunerModel` reads and writes `UserDefaults` itself (one key per setting, custom tunings as JSON). Do not add `@AppStorage` for the same keys. Declared in `apple/Tuner/PrivacyInfo.xcprivacy` (UserDefaults CA92.1, system boot time 35F9.1); update it when adding a required-reason API.
 - No haptics (tried and dropped: not useful while playing). Optional "keep screen awake".
 - Appearance: System (default) / Light / Dark in Settings, set on the windows; every colour comes from `Palette` (light/dark pairs in `Theme.swift`).
 - `NSMicrophoneUsageDescription`: "The tuner listens to find the note you play. Nothing is recorded or sent."
@@ -132,7 +132,7 @@ Real recordings go to `fixtures/` (Richard will record each string clean + with 
 ### Screens (see canvas, page "Final — main screen")
 1. **Main tuner**: dial with no box — big note letter (+ small octave) inside a thin arc of **21 ticks** (−50…+50 ¢, 5 ¢ per tick, ±80° spread). Only lit ticks take the state colour; centre tick lit when in tune. One status line under it: `−12¢ ▲` / `+18¢ ▼` / `IN TUNE` / `PLAY A STRING`. **The whole screen background tints** with the state. Six string keys at the bottom (active key = ink fill, green dot = already tuned). Bottom **trio toolbar**: A4 circle (`440`) · tuning pill (`Standard EADGBE ⌃⌄`) · settings circle.
 2. **Idle**: neutral background, grey `–`, no lit ticks, no active key.
-3. **Microphone**: first-launch screen ("Let's hear your guitar" · "Allow microphone" · "NOTHING IS RECORDED OR SENT") and denied screen ("Microphone is off" · "Open Settings" · "Not now").
+3. **Microphone**: first-launch screen ("Let's hear your guitar" · "Continue" · "NOTHING IS RECORDED OR SENT"; never "Allow", App Review rejects it) and denied screen ("Microphone is off" · "Open Settings" · "Not now").
 4. **Tuning picker** (sheet): Guitar / Bass / Ukulele segmented control; presets Standard, Drop D, Half Step Down, Full Step Down, Drop C, DADGAD, Open G. Plain rows with hairline dividers, orange check on the selected one.
 5. **Settings** (sheet): A4 pitch stepper, in-tune range (±1/±3/±5 ¢), note names (sharps/flats), Tools → intonation check, appearance (system / light / dark), meter (dial / strobe), keep screen awake.
 6. **Trial features** (Nov 2026, kept only if they survive testing): chromatic mode (picker segment), ALL TUNED status, custom tunings (picker → New tuning; long-press to edit/delete), 12th-fret intonation check, strobe meter. Reference tone was tried and dropped. Footer: `NO ADS · NO TRACKING · NO ACCOUNT`.

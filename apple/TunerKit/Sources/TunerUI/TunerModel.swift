@@ -185,6 +185,12 @@ public final class TunerModel {
 
     // MARK: Lifecycle
 
+    /// Takes the app-wide phase: on iPad one window going to the background must not stop the
+    /// microphone for a window that is still visible.
+    public func appPhaseChanged(_ phase: ScenePhase) {
+        if phase == .active { sceneBecameActive() } else { sceneLeftActive() }
+    }
+
     func sceneBecameActive() {
         isActive = true
         refreshMicAccess()

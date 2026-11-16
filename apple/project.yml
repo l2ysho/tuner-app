@@ -37,8 +37,6 @@ targets:
         product: TunerUI
       - package: TunerKit
         product: TunerAudio
-      - target: TunerAudioUnit
-        embed: true
     settings:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: $(APP_BUNDLE_ID)
@@ -54,7 +52,8 @@ targets:
         INFOPLIST_KEY_LSApplicationCategoryType: public.app-category.music
         ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon
         ENABLE_PREVIEWS: YES
-  # Placeholder Audio Unit (pass-through effect): proves signing, embedding and registration.
+  # Placeholder Audio Unit (pass-through effect). Not embedded in the app: App Review rejects
+  # extensions that do nothing. Add it back to the Tuner target's dependencies once it tunes.
   TunerAudioUnit:
     type: app-extension
     platform: iOS

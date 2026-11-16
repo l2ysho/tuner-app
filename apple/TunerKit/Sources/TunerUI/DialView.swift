@@ -43,6 +43,7 @@ struct DialView: View {
         .frame(width: width, height: Self.baseHeight * scale)
         .accessibilityElement(children: .ignore)
         .accessibilityLabel(display.accessibilityLabel)
+        .accessibilityAddTraits(.updatesFrequently)
     }
 
     private func tickView(_ tick: TunerDisplay.Tick) -> some View {

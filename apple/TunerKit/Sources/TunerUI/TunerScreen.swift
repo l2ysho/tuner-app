@@ -52,6 +52,13 @@ struct TunerScreen: View {
         .background(Palette.screenTint(display.state).ignoresSafeArea())
         .animation(reduceMotion ? nil : .easeOut(duration: 0.25), value: display.state)
         .animation(reduceMotion ? nil : .easeOut(duration: 0.12), value: display.ticks)
+        // VoiceOver users cannot watch the dial; tell them when a string reaches pitch.
+        .onChange(of: display.state) { _, state in
+            if state == .inTune { AccessibilityNotification.Announcement("In tune").post() }
+        }
+        .onChange(of: model.allTuned) { _, allTuned in
+            if allTuned { AccessibilityNotification.Announcement("All strings tuned").post() }
+        }
         .sheet(item: $sheet) { sheet in
             switch sheet {
             case .tuning: TuningPickerSheet(model: model)

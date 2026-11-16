@@ -5,6 +5,7 @@ import TunerUI
 
 @main
 struct TunerApp: App {
+    @Environment(\.scenePhase) private var scenePhase
     @State private var model: TunerModel = {
         #if DEBUG
             // As a test host the app must not open the microphone: the simulator's audio server can
@@ -24,5 +25,6 @@ struct TunerApp: App {
         WindowGroup {
             RootView(model: model)
         }
+        .onChange(of: scenePhase, initial: true) { _, phase in model.appPhaseChanged(phase) }
     }
 }
