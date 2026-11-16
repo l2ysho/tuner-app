@@ -11,6 +11,7 @@
 - Output is quiet: one `ok` line per step; on failure only the relevant lines plus the log path (`build/logs/<step>.log`).
 - A PostToolUse hook (`.claude/hooks/post-edit.sh`) formats and lints each file you edit. Exit 2 = fix what it printed.
 - See the UI: `just screenshot state=flat` (flat | sharp | intune | idle | sweep | live), then read `artifacts/screen.png`.
+- Snapshots are recorded on the iOS 27.2 simulator, iPhone 18 Pro (what CI's `xcode-27` runner has; `tools/simulator` picks it). Another iOS version renders differently and fails every snapshot. Install with `xcodebuild -downloadPlatform iOS`.
 - Snapshot failures write diffs to `artifacts/snapshots/`; open the PNGs. Re-record with `just record-snapshots` and look at every new image before committing it.
 - Xcode MCP (`.mcp.json`, `xcrun mcpbridge`) needs Xcode running with the project open and MCP enabled in Xcode → Settings → Intelligence.
 - TestFlight: bump `CURRENT_PROJECT_VERSION` in `apple/project.yml`, then `just upload`. Signs with an App Store Connect API key: `ASC_KEY_ID` + `ASC_ISSUER_ID` in the untracked `.env`, key at `~/.appstoreconnect/private_keys/AuthKey_<id>.p8`.
